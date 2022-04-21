@@ -13,6 +13,8 @@
     char* stringVal;
 }
 
+%token IDENTIFIER;
+
 /* types */
 %token INT BOOLEAN CHARACTER FLOAT STRING
 

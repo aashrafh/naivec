@@ -38,6 +38,15 @@ return      return RETURN;
 
 [-+*/{}~^&|(),;:=%]    return yytext[0];
 
+[+-]?[[:digit:]]+                           return INT_TYPE;
+([0-9]*[.])?[0-9]+                          return FLOAT_TYPE;
+['][a-zA-Z][']                              return CHARACTER_TYPE;
+\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"    return STRING_TYPE;
+[a-zA-Z\_][0-9a-zA-Z\_]*                    return IDENTIFIER;
+false                                       return BOOLEAN_TYPE;
+true                                        return BOOLEAN_TYPE;
+
+.                                           {yyerror("unexpected character");}
 
 %%
 
