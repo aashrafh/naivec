@@ -35,3 +35,14 @@
 
 %start program
 
+/*
+rules should cover: 
+variables and constants declaration
+math and logical expression
+assignment statements
+if statements
+else statements
+while loops
+for loops
+switch statements
+*/
