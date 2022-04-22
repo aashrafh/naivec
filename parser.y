@@ -16,7 +16,7 @@
 %token IDENTIFIER;
 
 /* types */
-%token INT BOOLEAN CHARACTER FLOAT STRING
+%token INT BOOLEAN CHARACTER FLOAT STRING CONSTANT
 
 /* values */
 %token INT_TYPE BOOLEAN_TYPE CHARACTER_TYPE FLOAT_TYPE STRING_TYPE
@@ -98,6 +98,53 @@ matched_if: IF '(' expression_statement ')' '{' statements '}' ELSE '{' matched_
 
 unmatched_if: IF '(' expression_statement ')' '{' statements '}'            {printf("unmatched_if");}
         | IF '(' expression_statement ')' '{' matched_if '}' ELSE '{' unmatched_if '}' {printf("matched_if\n");}
+        ;
+
+for_statement: FOR '(' for_iterator ';' expression_statement ';' expression_statement ')' block_statement           {;}
+        ;
+
+for_iterator: expression_statement          {;}
+        | declaration_statement             {;}
+        ;
+
+data_type: INT      {;}
+        | FLOAT     {;}
+        | BOOLEAN   {;}
+        | CHARACTER {;}
+        | STRING    {;}
+        ;
+
+declaration_statement: data_type IDENTIFIER                         {printf("variable declaration");}
+        | data_type IDENTIFIER '=' expression_statement             {;}
+        | CONSTANT data_type IDENTIFIER '=' expression_statement    {;}
+        ;
+
+data_value: INT_TYPE        {;}
+        | FLOAT_TYPE        {;}
+        | BOOLEAN_TYPE      {;}
+        | CHARACTER_TYPE    {;}
+        | STRING_TYPE       {;}
+        ;
+
+expression_statement: '(' expression_statement ')'                  {;}
+        | IDENTIFIER                                                {printf("identifier");}
+        | data_value                                                {;}
+        | logical_expression                                        {;}
+        ;
+
+logical_expression: expression_statement '=' expression_statement       {printf("assignment");}
+        | expression_statement '+' expression_statement                 {;}
+        | expression_statement '-' expression_statement                 {;}
+        | expression_statement '*' expression_statement                 {;}
+        | expression_statement '/' expression_statement                 {;}
+        | expression_statement AND expression_statement                 {;}
+        | expression_statement OR expression_statement                  {;}
+        | expression_statement GREATER_THAN expression_statement        {;}
+        | expression_statement LESS_THAN expression_statement           {;}
+        | expression_statement GREATER_EQUAL expression_statement       {;}
+        | expression_statement LESS_EQUAL expression_statement          {;}
+        | expression_statement EQUAL expression_statement               {;}
+        | expression_statement NOT_EQUAL expression_statement           {;}
         ;
 
 
