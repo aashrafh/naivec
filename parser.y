@@ -37,6 +37,8 @@
 
 %start program
 
+%%
+
 /*
 rules should cover: 
 variables and constants declaration
@@ -47,4 +49,47 @@ else statements
 while loops
 for loops
 switch statements
+
+
+
+while loops
+if statements
+for loops
+switch statements
+variables and constants declaration
+math and logical expression
+
+assignment statements
+else statements
 */
+
+program:
+        | statements                                {printf("statements");}
+        ;
+
+statements: statement                               {printf("statement\n");}                                            
+        | statements statement                      {printf("statements -> statement");}
+        ;
+statement: ';'                                      {;}
+        | while_statement                           {;}
+        | if_statement                              {printf("If statement\n");}
+        | for_statement                             {;}
+        | do_while_statement                        ';' {;}
+        | switch_statement                          {;}
+        | declaration_statement                     ';' {printf("variable declaration\n");}
+        | expression_statement                      ';' {;}
+        ;
+
+
+
+
+%%
+
+void yyerror(char *s) {
+    fprintf(stderr, "%s\n", s);
+}
+
+int main(void) {
+    yyparse();
+    return 0;
+}
