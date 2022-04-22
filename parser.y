@@ -34,6 +34,7 @@
 %left AND OR
 %left EQUAL NOT_EQUAL GREATER_THAN LESS_THAN GREATER_EQUAL LESS_EQUAL
 %left '-' '+' '*' '/' '%' '^'
+%left ifpred
 
 %start program
 
@@ -69,7 +70,10 @@ program:
 
 statements: statement                               {printf("statement\n");}                                            
         | statements statement                      {printf("statements -> statement");}
+        | block_statement                           {printf("block statement");}
+        | statements block_statement                {printf("statements -> block statement");}
         ;
+
 statement: ';'                                      {;}
         | while_statement                           {;}
         | if_statement                              {printf("If statement\n");}
@@ -80,7 +84,21 @@ statement: ';'                                      {;}
         | expression_statement                      ';' {;}
         ;
 
+while_statement: WHILE '(' expression_statement ')' block_statement {;}
+        ;
 
+if_statement: matched_if                            {printf("matched if\n");}
+        | unmatched_if                              {printf("unmatched if\n");}
+        ;
+
+matched_if: IF '(' expression_statement ')' '{' statements '}' ELSE '{' matched_if '}' %prec ifpred         {printf("matched_if\n");}
+        | statements            {printf("matched_if statements");}
+        |                       {printf("matched_if empty\n");}
+        ;
+
+unmatched_if: IF '(' expression_statement ')' '{' statements '}'            {printf("unmatched_if");}
+        | IF '(' expression_statement ')' '{' matched_if '}' ELSE '{' unmatched_if '}' {printf("matched_if\n");}
+        ;
 
 
 %%
