@@ -16,7 +16,7 @@
 %token IDENTIFIER;
 
 /* types */
-%token INT BOOLEAN CHARACTER FLOAT STRING CONSTANT
+%token INT BOOLEAN CHARACTER FLOAT STRING CONSTANT VOID
 
 /* values */
 %token INT_TYPE BOOLEAN_TYPE CHARACTER_TYPE FLOAT_TYPE STRING_TYPE
@@ -78,10 +78,12 @@ statement: ';'                                      {;}
         | while_statement                           {;}
         | if_statement                              {printf("If statement\n");}
         | for_statement                             {;}
-        | do_while_statement                        ';' {;}
-        | switch_statement                          {;}
         | declaration_statement                     ';' {printf("variable declaration\n");}
         | expression_statement                      ';' {;}
+        ;
+
+block_statement: '{' '}'        {;}
+        | '{' statements '}'    {;}
         ;
 
 while_statement: WHILE '(' expression_statement ')' block_statement {;}

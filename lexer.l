@@ -14,15 +14,15 @@ string      return STRING;
 const       return CONSTANT;
 void        return VOID;
 
-==          return EQUAL;
-!=          return NOT_EQUAL;
->           return GREATER_THAN;
-<           return LESS_THAN;
->=          return GREATER_EQUAL;
-<=          return LESS_EQUAL;
-&&          return AND;
-||          return OR;
-!           return NOT;
+"=="          return EQUAL;
+"!="          return NOT_EQUAL;
+">"           return GREATER_THAN;
+"<"           return LESS_THAN;
+">="          return GREATER_EQUAL;
+"<="          return LESS_EQUAL;
+"&&"          return AND;
+"||"          return OR;
+"!"           return NOT;
 
 if          return IF;
 else        return ELSE;
@@ -41,12 +41,10 @@ return      return RETURN;
 [+-]?[[:digit:]]+                           return INT_TYPE;
 ([0-9]*[.])?[0-9]+                          return FLOAT_TYPE;
 ['][a-zA-Z][']                              return CHARACTER_TYPE;
+"false"                                     {yylval.boolVal = false; return BOOLEAN_TYPE;}
+"true"                                      {yylval.boolVal = true; return BOOLEAN_TYPE;}
 \"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"    return STRING_TYPE;
 [a-zA-Z\_][0-9a-zA-Z\_]*                    return IDENTIFIER;
-false                                       return BOOLEAN_TYPE;
-true                                        return BOOLEAN_TYPE;
-
-.                                           {yyerror("unexpected character");}
 
 %%
 
