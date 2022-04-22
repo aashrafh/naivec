@@ -1,6 +1,6 @@
 %{
     #include<stdlib.h>
-    #include "y.tab.h"
+    #include "parser.tab.h"
     void yyerror(char *s);
 %}
 
@@ -14,6 +14,27 @@ string      return STRING;
 const       return CONSTANT;
 void        return VOID;
 
+if          return IF;
+else        return ELSE;
+switch      return SWITCH;
+case        return CASE;
+default     return DEFAULT;
+for         return FOR;
+do          return DO;
+while       return WHILE; 
+break       return BREAK; 
+continue    return CONTINUE;
+return      return RETURN;
+
+[+-]?[[:digit:]]+                           return INT_TYPE;
+([0-9]*[.])?[0-9]+                          return FLOAT_TYPE;
+['][a-zA-Z][']                              return CHARACTER_TYPE;
+"false"                                     return BOOLEAN_TYPE;
+"true"                                      return BOOLEAN_TYPE;
+[a-zA-Z\_][0-9a-zA-Z\_]*                    return IDENTIFIER;
+\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"    return STRING_TYPE;
+[-+*/%&|^~!<>(){}[:\]]                      return yytext[0];
+
 "=="          return EQUAL;
 "!="          return NOT_EQUAL;
 ">"           return GREATER_THAN;
@@ -23,28 +44,13 @@ void        return VOID;
 "&&"          return AND;
 "||"          return OR;
 "!"           return NOT;
+"="           return ASSIGNMENT;
+";"           return SEMICOLON;
+","           return COMMA;
 
-if          return IF;
-else        return ELSE;
-while       return WHILE;
-for         return FOR;
-do          return DO; 
-switch      return SWITCH; 
-case        return CASE; 
-default     return DEFAULT; 
-break       return BREAK; 
-function    return FUNCTION; 
-return      return RETURN;
 
-[-+*/{}~^&|(),;:=%]    return yytext[0];
+[ \t\n]+      ;
 
-[+-]?[[:digit:]]+                           return INT_TYPE;
-([0-9]*[.])?[0-9]+                          return FLOAT_TYPE;
-['][a-zA-Z][']                              return CHARACTER_TYPE;
-"false"                                     {yylval.boolVal = false; return BOOLEAN_TYPE;}
-"true"                                      {yylval.boolVal = true; return BOOLEAN_TYPE;}
-\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"    return STRING_TYPE;
-[a-zA-Z\_][0-9a-zA-Z\_]*                    return IDENTIFIER;
 
 %%
 

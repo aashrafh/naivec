@@ -1,7 +1,8 @@
 %{
 #include <stdio.h>
-#include "test.tab.h"
+#include "y.tab.h"
 %}
+
 %%
 int         return INT;
 bool        return BOOLEAN;
@@ -9,7 +10,7 @@ char        return CHARACTER;
 float       return FLOAT;
 string      return STRING;
 =           return EQUAL;
-[-+*/{}~^&|(),:=%]                         return yytext[0];
+[-+*/{}~^&|(),:=%]                          return yytext[0];
 false                                       return BOOLEAN_TYPE;
 true                                        return BOOLEAN_TYPE;
 [;]                                         return SEMICOLON;
