@@ -63,11 +63,11 @@ statements: statement
         | statements statement
         ;
 
-statement: declaration_statement SEMICOLON
-        | expression_statement SEMICOLON
-        | if_statement
-        | while_statement
-        | for_statement
+statement: declaration_statement SEMICOLON { printf("declaration\n");}
+        | expression_statement SEMICOLON { printf("assignment\n");}
+        | if_statement { printf("if\n");}
+        | while_statement { printf("while\n");}
+        | for_statement { printf("for\n");}
         | SEMICOLON
         ;      
 
@@ -98,13 +98,12 @@ expression_statement: '(' expression_statement ')'
         | IDENTIFIER
         ;
 
-math_expression: expression_statement ASSIGNMENT expression_statement
-        | IDENTIFIER ASSIGNMENT expression_statement
+math_expression: IDENTIFIER ASSIGNMENT expression_statement
         | expression_statement '+' expression_statement
         | expression_statement '-' expression_statement
         | expression_statement '*' expression_statement
         | expression_statement '/' expression_statement
-
+        ;
 logical_expression: 
         | expression_statement AND expression_statement
         | expression_statement OR expression_statement
@@ -138,7 +137,7 @@ while_statement: WHILE '(' expression_statement ')' block_statement
         | WHILE '(' expression_statement ')' statement 
         ;
     
-for_statement: for_declaration expression_statement ')' block_statement
+for_statement: for_declaration  block_statement
         | for_declaration statement
         ;
 
