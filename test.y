@@ -24,22 +24,26 @@ main()
 %%
 
 command:
-    | commands command 
+    commands command
+    | commands
+    ;
 commands:
-    assignment SEMICOLON
+    assignment SEMICOLON { printf("assignment\n");}
     | 
-    declaration SEMICOLON
+    declaration SEMICOLON { printf("declaration\n");}
+    ;
+assignment:
+	INT IDENTIFIER EQUAL INT_TYPE 
+    | FLOAT IDENTIFIER EQUAL FLOAT_TYPE 
+    | FLOAT IDENTIFIER EQUAL INT_TYPE 
+    | BOOLEAN IDENTIFIER EQUAL BOOLEAN_TYPE ]
+    | CHARACTER IDENTIFIER EQUAL CHARACTER_TYPE 
+    | STRING IDENTIFIER EQUAL STRING_TYPE 
     ;
 declaration : 
     INT IDENTIFIER 
-    {
-		printf("declaration%s\n",$2);
-	}
+    | FLOAT IDENTIFIER
+    | BOOLEAN IDENTIFIER 
+    | CHARACTER IDENTIFIER 
+    | STRING IDENTIFIER 
 	;
-assignment:
-	INT IDENTIFIER EQUAL INT_TYPE | BOOLEAN IDENTIFIER EQUAL BOOLEAN_TYPE | CHARACTER IDENTIFIER EQUAL CHARACTER_TYPE | STRING IDENTIFIER EQUAL STRING_TYPE 
-    | FLOAT IDENTIFIER EQUAL FLOAT_TYPE 
-    {
-        printf("assignment%s\n",$1);
-    }
-    ;
