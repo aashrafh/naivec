@@ -37,6 +37,7 @@ return      return RETURN;
 "="           return ASSIGNMENT;
 ";"           return SEMICOLON;
 ","           return COMMA;
+[+]           return PLUS;  
 
 [-+*/{}~^&|(),:=%]                          return yytext[0];
 true|false                                  yylval=!strcmp(yytext,"true"); return BOOLEAN_TYPE;

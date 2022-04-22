@@ -24,7 +24,7 @@
 %token INT_TYPE BOOLEAN_TYPE CHARACTER_TYPE FLOAT_TYPE STRING_TYPE
 
 /* operators */
-%token AND OR NOT
+%token AND OR NOT PLUS
 %token EQUAL NOT_EQUAL GREATER_THAN LESS_THAN GREATER_EQUAL LESS_EQUAL
 
 /* control */
@@ -78,7 +78,8 @@ data_type: INT
         | STRING
         ;
 
-data_value: INT_TYPE
+data_value: 
+        INT_TYPE
         | FLOAT_TYPE
         | BOOLEAN_TYPE
         | CHARACTER_TYPE
@@ -94,12 +95,12 @@ declaration_statement: data_type IDENTIFIER
 expression_statement: '(' expression_statement ')'
         | math_expression
         | logical_expression
-        | data_value
-        | IDENTIFIER
+        | data_value 
+        | IDENTIFIER 
         ;
 
-math_expression: IDENTIFIER ASSIGNMENT expression_statement
-        | expression_statement '+' expression_statement
+math_expression: IDENTIFIER ASSIGNMENT expression_statement 
+        | expression_statement PLUS expression_statement 
         | expression_statement '-' expression_statement
         | expression_statement '*' expression_statement
         | expression_statement '/' expression_statement
@@ -115,7 +116,7 @@ logical_expression:
         | expression_statement NOT_EQUAL expression_statement
         ;
 
-block_statement: '{' '}'
+block_statement: '{''}'
         | '{' statements '}'
         ;
 
