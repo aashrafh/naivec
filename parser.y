@@ -25,7 +25,7 @@
 %token INT_TYPE BOOLEAN_TYPE CHARACTER_TYPE FLOAT_TYPE STRING_TYPE
 
 /* operators */
-%token AND OR NOT PLUS  
+%token AND OR NOT   
 %token EQUAL NOT_EQUAL GREATER_THAN LESS_THAN GREATER_EQUAL LESS_EQUAL
 
 /* control */
@@ -57,7 +57,6 @@
 
 
 program: statements
-        |
         ;
 
 statements: statement
@@ -72,8 +71,7 @@ statement: declaration_statement SEMICOLON { printf("declaration\n");}
         | switch_statement    { printf("switch case\n");}
         | function      { printf("function\n");}
         | BREAK SEMICOLON
-        | CONTINUE SEMICOLON
-        | SEMICOLON
+        | CONTINUE SEMICOLON 
         ;      
 
 data_type: INT
@@ -97,23 +95,27 @@ declaration_statement: data_type IDENTIFIER
         | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement
         ;
 
-expression_statement: '(' expression_statement ')'
-        | math_expression 
+expression_statement: math_expression 
         | logical_expression    
-        | data_value            
-        | IDENTIFIER            
+        
         ;
-
 math_expression: IDENTIFIER ASSIGNMENT expression_statement 
-        | expression_statement PLUS expression_statement 
-        | expression_statement '-' expression_statement
-        | expression_statement '*' expression_statement
-        | expression_statement '/' expression_statement
+        | expression_statement '+' term
+        | expression_statement '-' term
+        | term
         ;
-logical_expression: 
+term :    term '*' factor
+        | term '/' factor
+        | factor
+
+factor :  data_value
+         | IDENTIFIER
+         | '(' expression_statement ')'
+         |  
+         
+logical_expression:  NOT expression_statement
         | expression_statement AND expression_statement
         | expression_statement OR expression_statement
-        | NOT expression_statement
         | expression_statement GREATER_THAN expression_statement
         | expression_statement LESS_THAN expression_statement
         | expression_statement GREATER_EQUAL expression_statement
