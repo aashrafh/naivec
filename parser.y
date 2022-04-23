@@ -10,6 +10,7 @@
 %token ASSIGNMENT;
 %token SEMICOLON;
 %token COMMA;
+%token COLON;
 
 /* types */
 %token INT 
@@ -68,10 +69,11 @@ statement: declaration_statement SEMICOLON { printf("declaration\n");}
         | if_statement { printf("if\n");}
         | while_statement { printf("while\n");}
         | for_statement { printf("for\n");}
+        | switch_statement    { printf("switch case\n");}
         | function      { printf("function\n");}
+        | BREAK SEMICOLON
+        | CONTINUE SEMICOLON
         | SEMICOLON
-        | BREAK
-        | CONTINUE
         ;      
 
 data_type: INT
@@ -111,13 +113,13 @@ math_expression: IDENTIFIER ASSIGNMENT expression_statement
 logical_expression: 
         | expression_statement AND expression_statement
         | expression_statement OR expression_statement
+        | NOT expression_statement
         | expression_statement GREATER_THAN expression_statement
         | expression_statement LESS_THAN expression_statement
         | expression_statement GREATER_EQUAL expression_statement
         | expression_statement LESS_EQUAL expression_statement
         | expression_statement EQUAL expression_statement
         | expression_statement NOT_EQUAL expression_statement
-        | NOT expression_statement
         ;
 
 block_statement: '{''}'
@@ -146,16 +148,24 @@ for_statement: for_declaration  block_statement
         | for_declaration statement
         ;
 
-for_declaration: FOR '(' declaration_statement SEMICOLON expression_statement SEMICOLON expression_statement ')';
+for_declaration: FOR '(' declaration_statement SEMICOLON expression_statement SEMICOLON expression_statement ')' ;
+
+switch_statement : SWITCH '('expression_statement')' '{' case_statement '}'
+
+case_statement : CASE expression_statement COLON statements case_statement
+                | DEFAULT COLON statements
+                | 
+                ;
 
 arguments: arguments ',' argument
         | argument
         |
+        ;
 
-argument : data_type IDENTIFIER
-
+argument : data_type IDENTIFIER 
+        
 function : VOID IDENTIFIER '('arguments')' block_statement
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_statement SEMICOLON '}'
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_statement SEMICOLON '}' 
 
 
 %%

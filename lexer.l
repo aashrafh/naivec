@@ -37,6 +37,7 @@ return      return RETURN;
 "="           return ASSIGNMENT;
 ";"           return SEMICOLON;
 ","           return COMMA;
+":"           return COLON;
 [+]           return PLUS;  
 
 [-+*/{}~^&|(),:=%]                          return yytext[0];
