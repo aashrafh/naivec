@@ -24,7 +24,7 @@
 %token INT_TYPE BOOLEAN_TYPE CHARACTER_TYPE FLOAT_TYPE STRING_TYPE
 
 /* operators */
-%token AND OR NOT PLUS
+%token AND OR NOT PLUS  
 %token EQUAL NOT_EQUAL GREATER_THAN LESS_THAN GREATER_EQUAL LESS_EQUAL
 
 /* control */
@@ -68,7 +68,10 @@ statement: declaration_statement SEMICOLON { printf("declaration\n");}
         | if_statement { printf("if\n");}
         | while_statement { printf("while\n");}
         | for_statement { printf("for\n");}
+        | function      { printf("function\n");}
         | SEMICOLON
+        | BREAK
+        | CONTINUE
         ;      
 
 data_type: INT
@@ -93,10 +96,10 @@ declaration_statement: data_type IDENTIFIER
         ;
 
 expression_statement: '(' expression_statement ')'
-        | math_expression
-        | logical_expression
-        | data_value 
-        | IDENTIFIER 
+        | math_expression 
+        | logical_expression    
+        | data_value            
+        | IDENTIFIER            
         ;
 
 math_expression: IDENTIFIER ASSIGNMENT expression_statement 
@@ -114,6 +117,7 @@ logical_expression:
         | expression_statement LESS_EQUAL expression_statement
         | expression_statement EQUAL expression_statement
         | expression_statement NOT_EQUAL expression_statement
+        | NOT expression_statement
         ;
 
 block_statement: '{''}'
@@ -144,7 +148,14 @@ for_statement: for_declaration  block_statement
 
 for_declaration: FOR '(' declaration_statement SEMICOLON expression_statement SEMICOLON expression_statement ')';
 
+arguments: arguments ',' argument
+        | argument
+        |
 
+argument : data_type IDENTIFIER
+
+function : VOID IDENTIFIER '('arguments')' block_statement
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_statement SEMICOLON '}'
 
 
 %%

@@ -47,9 +47,7 @@ true|false                                  yylval=!strcmp(yytext,"true"); retur
 \"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"    yylval=strdup(yytext+1);return STRING_TYPE;
 [a-zA-Z\_][0-9a-zA-Z\_]*                    return IDENTIFIER;
 
-
-
-[ \t\n]+      ;
+[ \t\n]+                                                    ;
 
 
 %%
