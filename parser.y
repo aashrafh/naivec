@@ -71,7 +71,7 @@ statement: declaration_statement SEMICOLON { printf("declaration\n");}
         | switch_statement    { printf("switch case\n");}
         | function      { printf("function\n");}
         | BREAK SEMICOLON
-        | CONTINUE SEMICOLON 
+        | CONTINUE SEMICOLON
         ;      
 
 data_type: INT
@@ -132,10 +132,8 @@ if_statement: matched_if
         | unmatched_if
         ;
 
-matched_if: IF '(' expression_statement ')' block_statement ELSE block_statement
-        | IF '(' expression_statement ')' statement ELSE statement
-        | IF '(' expression_statement ')' block_statement ELSE statement
-        | IF '(' expression_statement ')' statement ELSE block_statement
+matched_if: unmatched_if ELSE block_statement
+        | unmatched_if ELSE statement
         ;
 
 unmatched_if: IF '(' expression_statement ')' block_statement
