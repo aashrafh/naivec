@@ -63,20 +63,30 @@ statements: statement
         | statements statement
         ;
 
-statement: declaration_or_expression SEMICOLON 
+statement: declaration_or_assignment_or_expression SEMICOLON 
         | if_statement { printf("if\n");}
+        | do_while_statement SEMICOLON {printf("do while statement\n");}
         | while_statement { printf("while\n");}
         | for_statement { printf("for\n");}
         | switch_statement    { printf("switch case\n");}
         | function      { printf("function\n");}
-        | BREAK SEMICOLON
-        | CONTINUE SEMICOLON
-        | SEMICOLON
-        ;      
+        ;  
+
+loops_statement : CONTINUE SEMICOLON
+                | BREAK SEMICOLON
+                | declaration_or_assignment_or_expression SEMICOLON 
+                | nested_if_statement { printf("if\n");}
+                | do_while_statement SEMICOLON {printf("do while statement\n");}
+                | while_statement { printf("while\n");}
+                | for_statement { printf("for\n");}
+                | switch_statement    { printf("switch case\n");}
+                 
+loops_statements : loops_statements loops_statement
+                  | loops_statement
 
 data_type: INT
         | FLOAT
-        | BOOLEAN
+        | BOOLEAN      
         | CHARACTER
         | STRING
         ;
@@ -84,13 +94,17 @@ data_type: INT
 data_value: 
         INT_TYPE
         | FLOAT_TYPE
-        | BOOLEAN_TYPE
+        | BOOLEAN_TYPE 
         | CHARACTER_TYPE
-        | STRING_TYPE
+        | STRING_TYPE 
         ;
 
-declaration_or_expression : declaration_statement { printf("declaration\n");}
-                           | expression_statement { printf("expression\n");}
+expression_or_assignment : expression_statement {printf("expression\n");}
+                           | assignment_statement {printf("assignment\n");}
+
+
+declaration_or_assignment_or_expression : expression_or_assignment
+                                        | declaration_statement {printf("declaration\n");}
 
 declaration_statement: data_type IDENTIFIER
         | data_type IDENTIFIER ASSIGNMENT expression_statement
@@ -98,12 +112,14 @@ declaration_statement: data_type IDENTIFIER
         | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement
         ;
 
+assignment_statement : IDENTIFIER ASSIGNMENT expression_statement 
+                      |IDENTIFIER ASSIGNMENT assignment_statement
+
 expression_statement: math_expression 
         | logical_expression  {printf("logical expression\n")}  
         
         ;
-math_expression: IDENTIFIER ASSIGNMENT expression_statement 
-        | expression_statement '+' term {printf("addition\n")}  
+math_expression:  expression_statement '+' term {printf("addition\n")}  
         | expression_statement '-' term {printf("subtraction\n")}  
         | term
         ;
@@ -114,6 +130,7 @@ term :    term '*' factor {printf("multiplication\n")}
 factor :  data_value
          | IDENTIFIER
          | '(' expression_statement ')'
+         |
          
 logical_expression:  NOT expression_statement
         | expression_statement AND expression_statement
@@ -130,6 +147,9 @@ block_statement: '{''}'
         | '{' statements '}'
         ;
 
+loop_block_statement : '{''}'
+                      |'{' loops_statements '}'
+
 if_statement: matched_if
         | unmatched_if
         ;
@@ -138,24 +158,41 @@ matched_if: unmatched_if ELSE block_statement
         | unmatched_if ELSE statement
         ;
 
-unmatched_if: IF '(' declaration_or_expression ')' block_statement
-        | IF '(' declaration_or_expression ')' statement
+
+unmatched_if: IF '(' declaration_or_assignment_or_expression ')' block_statement
+        | IF '(' declaration_or_assignment_or_expression ')' statement
         ;
 
-while_statement: WHILE '(' declaration_or_expression ')' block_statement
-        | WHILE '(' declaration_or_expression ')' statement 
+nested_if_statement: nested_matched_if
+        | nested_unmatched_if
+        ;
+
+nested_matched_if: nested_unmatched_if ELSE loop_block_statement
+        | nested_unmatched_if ELSE loops_statement
+        ;
+
+
+nested_unmatched_if: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement
+        | IF '(' declaration_or_assignment_or_expression ')' loops_statement
+        ;
+
+while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement
+        | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement 
         ;
     
-for_statement: for_declaration  block_statement
-        | for_declaration statement
+for_statement: for_declaration  loop_block_statement
+        | for_declaration loops_statement
         ;
 
-for_declaration: FOR '(' declaration_statement SEMICOLON expression_statement SEMICOLON expression_statement ')' {printf("for loop %s",$4)}
+for_declaration: FOR '(' declaration_or_assignment_or_expression SEMICOLON declaration_or_assignment_or_expression SEMICOLON expression_or_assignment ')'
 
-switch_statement : SWITCH '('declaration_or_expression')' '{' case_statement '}'
 
-case_statement : CASE expression_statement COLON statements case_statement
-                | DEFAULT COLON statements
+do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'
+                    | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')'
+switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' case_statement '}'
+
+case_statement : CASE expression_or_assignment COLON loops_statements case_statement
+                | DEFAULT COLON loops_statements
                 | 
                 ;
 
@@ -167,7 +204,8 @@ arguments: arguments ',' argument
 argument : data_type IDENTIFIER 
         
 function : VOID IDENTIFIER '('arguments')' block_statement
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_statement SEMICOLON '}' 
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON '}' 
+        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' 
 
 
 %%
