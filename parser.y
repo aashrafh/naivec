@@ -204,8 +204,8 @@ arguments: arguments ',' argument
 argument : data_type IDENTIFIER 
         
 function : VOID IDENTIFIER '('arguments')' block_statement
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON '}' 
-        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' 
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON statements '}' 
+        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON statements'}' 
 
 
 %%
