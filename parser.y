@@ -63,8 +63,7 @@ statements: statement
         | statements statement
         ;
 
-statement: declaration_statement SEMICOLON { printf("declaration\n");}
-        | expression_statement SEMICOLON { printf("assignment\n");}
+statement: declaration_or_expression SEMICOLON 
         | if_statement { printf("if\n");}
         | while_statement { printf("while\n");}
         | for_statement { printf("for\n");}
@@ -72,6 +71,7 @@ statement: declaration_statement SEMICOLON { printf("declaration\n");}
         | function      { printf("function\n");}
         | BREAK SEMICOLON
         | CONTINUE SEMICOLON
+        | SEMICOLON
         ;      
 
 data_type: INT
@@ -89,6 +89,9 @@ data_value:
         | STRING_TYPE
         ;
 
+declaration_or_expression : declaration_statement { printf("declaration\n");}
+                           | expression_statement { printf("expression\n");}
+
 declaration_statement: data_type IDENTIFIER
         | data_type IDENTIFIER ASSIGNMENT expression_statement
         | CONSTANT data_type IDENTIFIER
@@ -96,22 +99,21 @@ declaration_statement: data_type IDENTIFIER
         ;
 
 expression_statement: math_expression 
-        | logical_expression    
+        | logical_expression  {printf("logical expression\n")}  
         
         ;
 math_expression: IDENTIFIER ASSIGNMENT expression_statement 
-        | expression_statement '+' term
-        | expression_statement '-' term
+        | expression_statement '+' term {printf("addition\n")}  
+        | expression_statement '-' term {printf("subtraction\n")}  
         | term
         ;
-term :    term '*' factor
-        | term '/' factor
+term :    term '*' factor {printf("multiplication\n")}  
+        | term '/' factor  {printf("division\n")}  
         | factor
 
 factor :  data_value
          | IDENTIFIER
          | '(' expression_statement ')'
-         |  
          
 logical_expression:  NOT expression_statement
         | expression_statement AND expression_statement
@@ -136,21 +138,21 @@ matched_if: unmatched_if ELSE block_statement
         | unmatched_if ELSE statement
         ;
 
-unmatched_if: IF '(' expression_statement ')' block_statement
-        | IF '(' expression_statement ')' statement
+unmatched_if: IF '(' declaration_or_expression ')' block_statement
+        | IF '(' declaration_or_expression ')' statement
         ;
 
-while_statement: WHILE '(' expression_statement ')' block_statement
-        | WHILE '(' expression_statement ')' statement 
+while_statement: WHILE '(' declaration_or_expression ')' block_statement
+        | WHILE '(' declaration_or_expression ')' statement 
         ;
     
 for_statement: for_declaration  block_statement
         | for_declaration statement
         ;
 
-for_declaration: FOR '(' declaration_statement SEMICOLON expression_statement SEMICOLON expression_statement ')' ;
+for_declaration: FOR '(' declaration_statement SEMICOLON expression_statement SEMICOLON expression_statement ')' {printf("for loop %s",$4)}
 
-switch_statement : SWITCH '('expression_statement')' '{' case_statement '}'
+switch_statement : SWITCH '('declaration_or_expression')' '{' case_statement '}'
 
 case_statement : CASE expression_statement COLON statements case_statement
                 | DEFAULT COLON statements
