@@ -56,7 +56,7 @@
 %%
 
 
-program: statements
+program: statements    
         ;
 
 statements: statement
@@ -150,31 +150,21 @@ block_statement: '{''}'
 loop_block_statement : '{''}'
                       |'{' loops_statements '}'
 
-if_statement: matched_if
-        | unmatched_if
+if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement
+        | IF '(' declaration_or_assignment_or_expression ')' statement else_statement
         ;
 
-matched_if: unmatched_if ELSE block_statement
-        | unmatched_if ELSE statement
+else_statement : ELSE statement
+               | ELSE block_statement
+               | SEMICOLON
+
+nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement nested_else_statement
+        | IF '(' declaration_or_assignment_or_expression ')' loops_statement nested_else_statement
         ;
 
-
-unmatched_if: IF '(' declaration_or_assignment_or_expression ')' block_statement
-        | IF '(' declaration_or_assignment_or_expression ')' statement
-        ;
-
-nested_if_statement: nested_matched_if
-        | nested_unmatched_if
-        ;
-
-nested_matched_if: nested_unmatched_if ELSE loop_block_statement
-        | nested_unmatched_if ELSE loops_statement
-        ;
-
-
-nested_unmatched_if: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement
-        | IF '(' declaration_or_assignment_or_expression ')' loops_statement
-        ;
+nested_else_statement : ELSE loops_statement
+               | ELSE loop_block_statement
+               | SEMICOLON
 
 while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement
         | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement 
@@ -204,8 +194,8 @@ arguments: arguments ',' argument
 argument : data_type IDENTIFIER 
         
 function : VOID IDENTIFIER '('arguments')' block_statement
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON statements '}' 
-        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON statements'}' 
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' 
+        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' 
 
 
 %%
