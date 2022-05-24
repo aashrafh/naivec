@@ -1,8 +1,12 @@
 %{
     #include<stdio.h>
     #include<stdlib.h>
+    #include <string.h>
+    #include "parser.h"
     void yyerror(char *s);
     int yylex();
+    nodeType identifierInt(int value, char* name);
+    int getValue(char* name);
 %}
 
 
@@ -92,10 +96,10 @@ data_type: INT
         ;
 
 data_value: 
-        INT_TYPE
-        | FLOAT_TYPE
+        INT_TYPE    
+        | FLOAT_TYPE 
         | BOOLEAN_TYPE 
-        | CHARACTER_TYPE
+        | CHARACTER_TYPE 
         | STRING_TYPE 
         ;
 
@@ -106,8 +110,8 @@ expression_or_assignment : expression_statement {printf("expression\n");}
 declaration_or_assignment_or_expression : expression_or_assignment
                                         | declaration_statement {printf("declaration\n");}
 
-declaration_statement: data_type IDENTIFIER
-        | data_type IDENTIFIER ASSIGNMENT expression_statement
+declaration_statement: data_type IDENTIFIER {  identifierInt(0,(char*)($2)); }
+        | data_type IDENTIFIER ASSIGNMENT expression_statement { identifierInt($4,(char*)($2)); }
         | CONSTANT data_type IDENTIFIER
         | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement
         ;
@@ -115,32 +119,32 @@ declaration_statement: data_type IDENTIFIER
 assignment_statement : IDENTIFIER ASSIGNMENT expression_statement 
                       |IDENTIFIER ASSIGNMENT assignment_statement
 
-expression_statement: math_expression 
-        | logical_expression  {printf("logical expression\n")}  
+expression_statement: math_expression {$$ = $1;}
+        | logical_expression  {printf("logical expression\n"); $$ = $1;}  
         
         ;
-math_expression:  expression_statement '+' term {printf("addition\n")}  
-        | expression_statement '-' term {printf("subtraction\n")}  
+math_expression:  expression_statement '+' term { printf("addition\n") ;$$ = $1 + $3;}  
+        | expression_statement '-' term { printf("subtraction\n") ; $$ = $1 - $3;}  
         | term
         ;
-term :    term '*' factor {printf("multiplication\n")}  
-        | term '/' factor  {printf("division\n")}  
+term :    term '*' factor {printf("multiplication\n") ; $$ = $1 * $3;}  
+        | term '/' factor  {printf("division\n"); $$ = $1 / $3;}  
         | factor
 
-factor :  data_value
-         | IDENTIFIER
+factor :  data_value 
+         | IDENTIFIER { $$ = getValue((char*)($1)) }
          | '(' expression_statement ')'
          |
          
-logical_expression:  NOT expression_statement
-        | expression_statement AND expression_statement
-        | expression_statement OR expression_statement
-        | expression_statement GREATER_THAN expression_statement
-        | expression_statement LESS_THAN expression_statement
-        | expression_statement GREATER_EQUAL expression_statement
-        | expression_statement LESS_EQUAL expression_statement
-        | expression_statement EQUAL expression_statement
-        | expression_statement NOT_EQUAL expression_statement
+logical_expression:  NOT expression_statement {$$ = ! $2 ;}
+        | expression_statement AND expression_statement {$$ = $1 && $3 ;}
+        | expression_statement OR expression_statement {$$ = $1 || $3 ;}
+        | expression_statement GREATER_THAN expression_statement {$$ = $1 > $3 ;}
+        | expression_statement LESS_THAN expression_statement {$$ = $1 < $3 ;}
+        | expression_statement GREATER_EQUAL expression_statement {$$ = $1 >= $3 ;}
+        | expression_statement LESS_EQUAL expression_statement {$$ = $1 <= $3 ;}
+        | expression_statement EQUAL expression_statement {$$ = $1 == $3 ;}
+        | expression_statement NOT_EQUAL expression_statement {$$ = $1 != $3 ;}
         ;
 
 block_statement: '{''}'
@@ -202,8 +206,28 @@ function : VOID IDENTIFIER '('arguments')' block_statement
 
 void yyerror(char *s) {
     fprintf(stderr, "%s\n", s);
+    exit(0);
 }
-
+int idx = 0 ;
+struct nodeTypeTag symbol_table[100];
+nodeType identifierInt(int value, char* name) { 
+        nodeType p; 
+        p.type = typeId; 
+        p.id.type = typeInt;
+        p.id.integer.value = value;
+        p.id.name = name;
+        symbol_table[idx++] = p;
+        printf("%d    %s\n",p.id.integer.value,p.id.name);
+        return p; 
+} 
+int getValue(char* name)
+{
+        for (int i =0;i < idx;i++)
+                if ( !strcmp(name,symbol_table[i].id.name) )
+                        return symbol_table[i].id.integer.value;
+        yyerror("variable not declared") ; //TODO
+        return 0;
+}
 int main(void) {
     yyparse();
     return 0;
