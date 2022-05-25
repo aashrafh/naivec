@@ -3,14 +3,25 @@
     #include<stdlib.h>
     #include <string.h>
     #include "parser.h"
+    #define typeVoid 0
+    #define typeInteger 1
+    #define typeFloat 2
+    #define typeBoolean 3
+    #define typeCharchter 4
+    #define typeString 5
+    #define identifierKind 1
+    #define constantKind 2
+    #define functionKind 3
     void yyerror(char *s);
     int yylex();
-    void addToSymbolTable(char* name , int type);
-    int getValue(int i);
+    void addToSymbolTable(char* name , int type, int kind);
     int inTable(char* name);
     int getType( int i);
-    void update(int i , void* value , int type);
+    int getKind( int i);
     int checkType(int x , int y);
+    int checkKind (int kind);
+    void setUsed(int i);
+    int scope = 0;
 %}
 
 
@@ -72,70 +83,92 @@ statements: statement
         ;
 
 statement: declaration_or_assignment_or_expression SEMICOLON 
-        | if_statement { printf("if\n");}
-        | do_while_statement SEMICOLON {printf("do while statement\n");}
-        | while_statement { printf("while\n");}
-        | for_statement { printf("for\n");}
-        | switch_statement    { printf("switch case\n");}
-        | function      { printf("function\n");}
-        | print_func
+        | if_statement 
+        | do_while_statement SEMICOLON 
+        | while_statement 
+        | for_statement 
+        | switch_statement    
+        | function      
         ;  
 
 loops_statement : CONTINUE SEMICOLON
                 | BREAK SEMICOLON
                 | declaration_or_assignment_or_expression SEMICOLON 
-                | nested_if_statement { printf("if\n");}
-                | do_while_statement SEMICOLON {printf("do while statement\n");}
-                | while_statement { printf("while\n");}
-                | for_statement { printf("for\n");}
-                | switch_statement    { printf("switch case\n");}
+                | nested_if_statement 
+                | do_while_statement SEMICOLON 
+                | while_statement 
+                | for_statement 
+                | switch_statement    
                  
 loops_statements : loops_statements loops_statement
                   | loops_statement
 
-data_type: INT { $$ = 1; }
-        | FLOAT { $$ = 2; }
-        | BOOLEAN { $$ = 3; }
-        | CHARACTER { $$ = 4; }
-        | STRING { $$ = 5; }
+data_type: INT { $$ = typeInteger; }
+        | FLOAT { $$ = typeFloat; }
+        | BOOLEAN { $$ = typeBoolean; }
+        | CHARACTER { $$ = typeCharchter; }
+        | STRING { $$ = typeString; }
         ;
 
 data_value: 
-        INT_TYPE { $$ = 1 }
-        | FLOAT_TYPE { $$ = 2 }
-        | BOOLEAN_TYPE { $$ = 3 }
-        | CHARACTER_TYPE { $$ = 4 }
-        | STRING_TYPE { $$ = 5 }
+        INT_TYPE { $$ = typeInteger }
+        | FLOAT_TYPE { $$ = typeFloat }
+        | BOOLEAN_TYPE { $$ = typeBoolean }
+        | CHARACTER_TYPE { $$ = typeCharchter }
+        | STRING_TYPE { $$ = typeString }
         ;
 
-expression_or_assignment : expression_statement {printf("expression\n");}
-                           | assignment_statement {printf("assignment\n");}
+expression_or_assignment : expression_statement 
+                           | assignment_statement 
 
 
 declaration_or_assignment_or_expression : expression_or_assignment
-                                        | declaration_statement {printf("declaration\n");}
+                                        | declaration_statement 
 
-declaration_statement: data_type IDENTIFIER { addToSymbolTable((char*)($2),$1);}
+declaration_statement: data_type IDENTIFIER 
+        {
+                if(inTable((char*)$2) != -1)
+                        yyerror("this variable has been declared before");
+                addToSymbolTable((char*)($2),$1,identifierKind);
+        }
         | data_type IDENTIFIER ASSIGNMENT expression_statement
         {
+                if(inTable((char*)$2) != -1)
+                        yyerror("this variable has been declared before");
                 checkType($1,$4); 
-                addToSymbolTable((char*)($2),$1);
+                addToSymbolTable((char*)($2),$1,identifierKind);
         }
-        | CONSTANT data_type IDENTIFIER
-        | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement
+        | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement        
+        {
+                if(inTable((char*)$3) != -1)
+                        yyerror("this variable has been declared before");
+                checkType($2,$5); 
+                addToSymbolTable((char*)($3),$2,constantKind);
+        }
         ;
 
 assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                         {
                                 int i = inTable((char*)($1));
+                                if (i == -1)
+                                        yyerror("variable used before declaration") ; 
+                                checkKind(getKind(i));
                                 int type = getType(i);
                                 $$ = checkType(type,$3);
                         }
-                      |IDENTIFIER ASSIGNMENT assignment_statement { $$ = checkType($1,$3); }
+                      |IDENTIFIER ASSIGNMENT assignment_statement 
+                        {
+                                int i = inTable((char*)($1));
+                                if (i == -1)
+                                        yyerror("variable used before declaration") ; 
+                                checkKind(getKind(i));
+                                int type = getType(i);
+                                $$ = checkType(type,$3);
+                        }
 
 expression_statement: math_expression { $$ = $1; }
-        | logical_expression  {printf("logical expression\n"); $$ = $1;}
-        | func_call  
+        | logical_expression  {$$ = $1;}
+        | function_call  { $$ = $1;}
         
         ;
 math_expression:  expression_statement '+' term { $$ = checkType($1,$3); }  
@@ -148,49 +181,52 @@ term :    term '*' factor { $$ = checkType($1,$3); }
 
 factor :  data_value { $$ = $1 ; }
          | IDENTIFIER 
-         { 
+        { 
                 int i = inTable((char*)($1)) ;
+                if (i == -1)
+                        yyerror("variable used before declaration") ; 
+                setUsed(i);
                 $$ = getType(i); 
         }
          | '(' expression_statement ')'
          |
          
 logical_expression:  NOT expression_statement { $$ = $1; }
-        | expression_statement AND expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement OR expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement GREATER_THAN expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement LESS_THAN expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement GREATER_EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement LESS_EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
-        | expression_statement NOT_EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement AND expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement OR expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement GREATER_THAN expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement LESS_THAN expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement GREATER_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement LESS_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+        | expression_statement NOT_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
         ;
 
-block_statement: '{''}'
-        | '{' statements '}'
+block_statement: '{''}' 
+        | '{' statements '}'  { printf("inside block\n");}
         ;
 
 loop_block_statement : '{''}'
                       |'{' loops_statements '}'
 
-if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement {$$ = checkType($3,3);}
-        | IF '(' declaration_or_assignment_or_expression ')' statement else_statement {$$ = checkType($3,3);}
+if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement {$$ = checkType($3,typeBoolean); printf("inside if\n");}
+        | IF '(' declaration_or_assignment_or_expression ')' statement else_statement {$$ = checkType($3,typeBoolean);}
         ;
 
 else_statement : ELSE statement
                | ELSE block_statement
                | SEMICOLON
 
-nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement nested_else_statement {$$ = checkType($3,3);}
-        | IF '(' declaration_or_assignment_or_expression ')' loops_statement nested_else_statement {$$ = checkType($3,3);}
+nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement nested_else_statement {$$ = checkType($3,typeBoolean);}
+        | IF '(' declaration_or_assignment_or_expression ')' loops_statement nested_else_statement {$$ = checkType($3,typeBoolean);}
         ;
 
 nested_else_statement : ELSE loops_statement
                | ELSE loop_block_statement
                | SEMICOLON
 
-while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement {$$ = checkType($3,3);}
-        | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement  {$$ = checkType($3,3);}
+while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement {$$ = checkType($3,typeBoolean);}
+        | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement  {$$ = checkType($3,typeBoolean);}
         ;
     
 for_statement: for_declaration  loop_block_statement
@@ -198,14 +234,11 @@ for_statement: for_declaration  loop_block_statement
         ;
 
 for_declaration: FOR '(' declaration_or_assignment_or_expression SEMICOLON declaration_or_assignment_or_expression SEMICOLON expression_or_assignment ')'
-{
-        checkType($3,$7);
-        checkType($5,3);
-}
+                        { checkType($5,typeBoolean); }
 
 
-do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($5,3);}
-                    | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($5,3);}
+do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($5,typeBoolean);}
+                    | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($5,typeBoolean);}
 switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' case_statement '}' {$$ = checkType($3,$6);}
 
 case_statement : CASE expression_or_assignment COLON loops_statements case_statement { $$ = $2;}
@@ -218,12 +251,39 @@ arguments: arguments ',' argument
         |
         ;
 
-argument : data_type IDENTIFIER { addToSymbolTable((char*)($2),$1);}
+argument : data_type IDENTIFIER { addToSymbolTable((char*)($2),$1,identifierKind);}
         
-function : VOID IDENTIFIER '('arguments')' block_statement
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' {$$ = checkType($1,$9);}
-        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' {$$ = checkType($1,$8);}
-func_call: IDENTIFIER '('arguments')'
+function : VOID IDENTIFIER '('arguments')' block_statement 
+        {
+                if(inTable((char*)$2) != -1)
+                        yyerror("this function has been declared before");
+                 addToSymbolTable((char*)($2),typeVoid,functionKind);
+        }
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' 
+        {
+                if(inTable((char*)$2) != -1)
+                        yyerror("this function has been declared before");
+                $$ = checkType($1,$9); 
+                addToSymbolTable((char*)($2),$1,functionKind); 
+        }
+        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}'
+        {
+                if(inTable((char*)$2) != -1)
+                        yyerror("this function has been declared before");
+                $$ = checkType($1,$8); 
+                addToSymbolTable((char*)($2),$1,functionKind); 
+        }
+
+
+function_call: IDENTIFIER '('arguments')' 
+        {
+                int i = inTable((char*)($1));
+                if (i == -1)
+                        yyerror("there is no function declared with this name") ; 
+                if (getKind(i) != functionKind)
+                        yyerror("identifier is not a funcion");
+                $$ = getType(i);
+        }
 %%
 
 void yyerror(char *s) {
@@ -232,24 +292,33 @@ void yyerror(char *s) {
 }
 int idx = 0 ;
 struct nodeTypeTag symbol_table[100];
-void addToSymbolTable(char* name , int type) { 
+void addToSymbolTable(char* name , int type, int kind) { 
         nodeType p; 
-        p.type = typeId;
-        p.id.type = type;
-        p.id.name = name;
+        p.isUsed = 0;
+        p.type = type;
+        p.kind = kind;
+        p.name = name;
+        p.scope = scope;
         symbol_table[idx++] = p;
 } 
 int inTable(char* name)
 {
         for (int i =0;i < idx;i++)
-                if ( !strcmp(name,symbol_table[i].id.name) )
-                        return i;
-        yyerror("variable used before declaration") ; 
+                if ( !strcmp(name,symbol_table[i].name) )
+                        return i;      
         return -1;
 } 
-int getType( int i)
+int getType(int i)
 {       
-        return symbol_table[i].id.type;
+        return symbol_table[i].type;
+}
+int getKind(int i)
+{
+        return symbol_table[i].kind;
+}
+void setUsed(int i)
+{
+        symbol_table[i].isUsed = 1;
 }
 int checkType(int x , int y){
         if (x != y){
@@ -258,7 +327,23 @@ int checkType(int x , int y){
         }
         return x;
 }
+int checkKind (int kind)
+{
+        if (kind == 2)
+                yyerror("constant cannot be modified");  
+        if (kind == 3)
+                yyerror("function cannot be modified");  
+        return kind;
+}
 int main(void) {
     yyparse();
+    for (int i=0;i<idx;i++)
+    {
+        if (symbol_table[i].isUsed == 0)
+        {
+                printf("%s is not used\n",symbol_table[i].name);
+                printf("scope %d\n",symbol_table[i].scope);
+        }
+    }
     return 0;
 }

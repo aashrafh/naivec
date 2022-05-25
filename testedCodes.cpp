@@ -17,10 +17,11 @@ int main()
         };
     };
     const int y = 10;
+    int x ;
+    const int m = 10;
     switch ( x = 10)
     {
-    case m = 10:
-        const float m = 10;
+    case m:
         break;
     default:
         break;
@@ -38,15 +39,17 @@ int main()
         while (y);
     }
     while(x);
-    for ( i = 0; int i = 10; i = 10)
-        for (j = 0; j < 15; j++)
+    float z;
+    for ( int i = 0; i == 1; z = 10.5)
+        for (int j = 0; j < 15; j = 15)
         {
-            if (x = 10)
+            int x = 10;
+            if (x == 10)
             {
                 break;
             };
             continue;
-            x = x + -+-+-1;
+//            x = x + -+-+-1;
         }
     return x = 0;
 }
@@ -56,10 +59,11 @@ void f()
     
 }
 
-float func()
+int func()
 {
     return 0;
 }
+int x = func();
 /* problems found
     cannot declare a variable inside if/while/switch                     --> solved
     x = x +1; +1 is defined as an integer not as "+ and 1"               --> solved
