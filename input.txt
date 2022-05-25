@@ -2,5 +2,10 @@ int x = 3;
 if (true)
 {
     int g = 130 ;
+    if (false)
+    {
+        int z ;
+    };
+    int z = 3;
 };
 int y = 4;

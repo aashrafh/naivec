@@ -202,14 +202,14 @@ logical_expression:  NOT expression_statement { $$ = $1; }
         | expression_statement NOT_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
         ;
 
-block_statement: '{''}' 
-        | '{' statements '}'  { printf("inside block\n");}
+block_statement :  '{''}'  
+        |   '{' {scope += 1;}  statements {scope -= 1;}  '}'  
         ;
 
 loop_block_statement : '{''}'
-                      |'{' loops_statements '}'
+                      |'{' {scope += 1;} loops_statements {scope -= 1;} '}'
 
-if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement {$$ = checkType($3,typeBoolean); printf("inside if\n");}
+if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement {$$ = checkType($3,typeBoolean); }
         | IF '(' declaration_or_assignment_or_expression ')' statement else_statement {$$ = checkType($3,typeBoolean);}
         ;
 
@@ -239,7 +239,7 @@ for_declaration: FOR '(' declaration_or_assignment_or_expression SEMICOLON decla
 
 do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($5,typeBoolean);}
                     | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($5,typeBoolean);}
-switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' case_statement '}' {$$ = checkType($3,$6);}
+switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' {scope += 1;} case_statement {scope -= 1;} '}' {$$ = checkType($3,$6);}
 
 case_statement : CASE expression_or_assignment COLON loops_statements case_statement { $$ = $2;}
                 | DEFAULT COLON loops_statements
@@ -259,14 +259,14 @@ function : VOID IDENTIFIER '('arguments')' block_statement
                         yyerror("this function has been declared before");
                  addToSymbolTable((char*)($2),typeVoid,functionKind);
         }
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' 
+        |  data_type IDENTIFIER  '('arguments')'  '{' {scope += 1;} statements RETURN expression_or_assignment SEMICOLON {scope -= 1;} '}' 
         {
                 if(inTable((char*)$2) != -1)
                         yyerror("this function has been declared before");
                 $$ = checkType($1,$9); 
                 addToSymbolTable((char*)($2),$1,functionKind); 
         }
-        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}'
+        | data_type IDENTIFIER  '('arguments')'  '{' {scope += 1;} RETURN expression_or_assignment SEMICOLON  {scope -= 1;} '}'
         {
                 if(inTable((char*)$2) != -1)
                         yyerror("this function has been declared before");
@@ -304,7 +304,7 @@ void addToSymbolTable(char* name , int type, int kind) {
 int inTable(char* name)
 {
         for (int i =0;i < idx;i++)
-                if ( !strcmp(name,symbol_table[i].name) )
+                if ( !strcmp(name,symbol_table[i].name) && symbol_table[i].scope == scope )
                         return i;      
         return -1;
 } 
