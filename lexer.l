@@ -25,6 +25,7 @@ while       return WHILE;
 break       return BREAK; 
 continue    return CONTINUE;
 return      return RETURN;
+print       return PRINT;
 "=="          return EQUAL;
 "!="          return NOT_EQUAL;
 ">"           return GREATER_THAN;

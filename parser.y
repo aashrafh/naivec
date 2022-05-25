@@ -5,8 +5,11 @@
     #include "parser.h"
     void yyerror(char *s);
     int yylex();
-    nodeType identifierInt(int value, char* name);
-    int getValue(char* name);
+    void addToSymbolTable(void * value, char* name , int type);
+    int getValue(int i);
+    int inTable(char* name);
+    idEnum getType( int i);
+    void update(int i , void* value , idEnum type);
 %}
 
 
@@ -33,7 +36,7 @@
 %token EQUAL NOT_EQUAL GREATER_THAN LESS_THAN GREATER_EQUAL LESS_EQUAL
 
 /* control */
-%token IF ELSE SWITCH CASE DEFAULT FOR DO WHILE BREAK CONTINUE RETURN 
+%token IF ELSE SWITCH CASE DEFAULT FOR DO WHILE BREAK CONTINUE RETURN PRINT
 
 /* precedence and associativity rules */
 
@@ -74,6 +77,7 @@ statement: declaration_or_assignment_or_expression SEMICOLON
         | for_statement { printf("for\n");}
         | switch_statement    { printf("switch case\n");}
         | function      { printf("function\n");}
+        | print_func
         ;  
 
 loops_statement : CONTINUE SEMICOLON
@@ -88,15 +92,15 @@ loops_statement : CONTINUE SEMICOLON
 loops_statements : loops_statements loops_statement
                   | loops_statement
 
-data_type: INT
-        | FLOAT
-        | BOOLEAN      
-        | CHARACTER
-        | STRING
+data_type: INT { $$ = 1; }
+        | FLOAT { $$ = 2; }
+        | BOOLEAN { $$ = 3; }
+        | CHARACTER { $$ = 4; }
+        | STRING { $$ = 5; }
         ;
 
 data_value: 
-        INT_TYPE    
+        INT_TYPE 
         | FLOAT_TYPE 
         | BOOLEAN_TYPE 
         | CHARACTER_TYPE 
@@ -110,13 +114,18 @@ expression_or_assignment : expression_statement {printf("expression\n");}
 declaration_or_assignment_or_expression : expression_or_assignment
                                         | declaration_statement {printf("declaration\n");}
 
-declaration_statement: data_type IDENTIFIER {  identifierInt(0,(char*)($2)); }
-        | data_type IDENTIFIER ASSIGNMENT expression_statement { identifierInt($4,(char*)($2)); }
+declaration_statement: data_type IDENTIFIER { addToSymbolTable(0,(char*)($2),$1);}
+        | data_type IDENTIFIER ASSIGNMENT expression_statement{ addToSymbolTable(&($4),(char*)($2),$1);}
         | CONSTANT data_type IDENTIFIER
         | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement
         ;
 
-assignment_statement : IDENTIFIER ASSIGNMENT expression_statement 
+assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
+                        {
+                                int i = inTable((char*)($1));
+                                idEnum type = getType(i);
+                                update(i,&($3),type);
+                        }
                       |IDENTIFIER ASSIGNMENT assignment_statement
 
 expression_statement: math_expression {$$ = $1;}
@@ -128,11 +137,17 @@ math_expression:  expression_statement '+' term { printf("addition\n") ;$$ = $1 
         | term
         ;
 term :    term '*' factor {printf("multiplication\n") ; $$ = $1 * $3;}  
-        | term '/' factor  {printf("division\n"); $$ = $1 / $3;}  
+        | term '/' factor  
+        {
+                printf("division\n"); 
+                if ((int)($3) == 0)
+                        yyerror("Division by zero");
+                $$ = $1 / $3;
+        }  
         | factor
 
-factor :  data_value 
-         | IDENTIFIER { $$ = getValue((char*)($1)) }
+factor :  data_value
+         | IDENTIFIER { int i = inTable((char*)($1)) ;$$ = getValue(i); }
          | '(' expression_statement ')'
          |
          
@@ -200,7 +215,7 @@ argument : data_type IDENTIFIER
 function : VOID IDENTIFIER '('arguments')' block_statement
         |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' 
         | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' 
-
+print_func : PRINT'('expression_statement')' {}
 
 %%
 
@@ -210,23 +225,52 @@ void yyerror(char *s) {
 }
 int idx = 0 ;
 struct nodeTypeTag symbol_table[100];
-nodeType identifierInt(int value, char* name) { 
+void addToSymbolTable(void * value, char* name , int type) { 
         nodeType p; 
         p.type = typeId; 
         p.id.type = typeInt;
-        p.id.integer.value = value;
         p.id.name = name;
+        if ( type == 1)
+                p.id.integer.value = *((int*)value);
+        else if (type == 2)
+                p.id.floatNumber.value = *((float*)value);
+        else if(type == 3)
+                p.id.boolean.value = *((int*)value);
+        else if (type == 4)
+                p.id.charcter.value = *((char*)value);
         symbol_table[idx++] = p;
-        printf("%d    %s\n",p.id.integer.value,p.id.name);
-        return p; 
 } 
-int getValue(char* name)
+int inTable(char* name)
 {
         for (int i =0;i < idx;i++)
                 if ( !strcmp(name,symbol_table[i].id.name) )
-                        return symbol_table[i].id.integer.value;
-        yyerror("variable not declared") ; //TODO
-        return 0;
+                        return i;
+        yyerror("variable used before declaration") ; 
+        return -1;
+} 
+int getValue(int i)
+{       
+        if (i)
+                return symbol_table[i].id.integer.value;
+}
+idEnum getType( int i)
+{     
+        if (i)
+                return symbol_table[i].id.type;
+}
+void update(int i , void* value , idEnum type){
+        if  (type == typeInt){
+                symbol_table[i].id.integer.value = *((int*)value);
+        }
+        else if (type == typeFloat){
+                symbol_table[i].id.floatNumber.value = *((float*)value);
+        }
+        else if (type == typeBoolean){
+                symbol_table[i].id.boolean.value = *((int*)value);
+        }
+        else if (type == typeChar){
+                symbol_table[i].id.charcter.value = *((char*)value);
+        }
 }
 int main(void) {
     yyparse();
