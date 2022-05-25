@@ -5,47 +5,10 @@ typedef enum
     typeOpr
 } nodeEnum;
 
-typedef enum
-{
-    typeInt,
-    typeFloat,
-    typeChar,
-    typeBoolean
-} idEnum;
-
 typedef struct
 {
-    int value;
-} nodeInt;
-
-typedef struct
-{
-    float value;
-} nodeFloat;
-
-typedef struct
-{
-    char value;
-} nodeChar;
-
-typedef struct
-{
-    int value;
-    
-} nodeBoolean;
-
-typedef struct
-{
-    idEnum type;
+    int type;
     char *name;
-    union
-    {
-        nodeInt integer;
-        nodeFloat floatNumber;
-        nodeChar charcter;
-        nodeBoolean boolean;
-    };
-
 } idNodeType;
 
 typedef struct
@@ -57,7 +20,8 @@ typedef struct
 
 typedef struct
 {
-    int value;
+    int type;
+    char *name;
 } conNodeType;
 
 typedef struct nodeTypeTag

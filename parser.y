@@ -5,11 +5,12 @@
     #include "parser.h"
     void yyerror(char *s);
     int yylex();
-    void addToSymbolTable(void * value, char* name , int type);
+    void addToSymbolTable(char* name , int type);
     int getValue(int i);
     int inTable(char* name);
-    idEnum getType( int i);
-    void update(int i , void* value , idEnum type);
+    int getType( int i);
+    void update(int i , void* value , int type);
+    int checkType(int x , int y);
 %}
 
 
@@ -36,7 +37,7 @@
 %token EQUAL NOT_EQUAL GREATER_THAN LESS_THAN GREATER_EQUAL LESS_EQUAL
 
 /* control */
-%token IF ELSE SWITCH CASE DEFAULT FOR DO WHILE BREAK CONTINUE RETURN PRINT
+%token IF ELSE SWITCH CASE DEFAULT FOR DO WHILE BREAK CONTINUE RETURN
 
 /* precedence and associativity rules */
 
@@ -100,11 +101,11 @@ data_type: INT { $$ = 1; }
         ;
 
 data_value: 
-        INT_TYPE 
-        | FLOAT_TYPE 
-        | BOOLEAN_TYPE 
-        | CHARACTER_TYPE 
-        | STRING_TYPE 
+        INT_TYPE { $$ = 1 }
+        | FLOAT_TYPE { $$ = 2 }
+        | BOOLEAN_TYPE { $$ = 3 }
+        | CHARACTER_TYPE { $$ = 4 }
+        | STRING_TYPE { $$ = 5 }
         ;
 
 expression_or_assignment : expression_statement {printf("expression\n");}
@@ -114,8 +115,12 @@ expression_or_assignment : expression_statement {printf("expression\n");}
 declaration_or_assignment_or_expression : expression_or_assignment
                                         | declaration_statement {printf("declaration\n");}
 
-declaration_statement: data_type IDENTIFIER { addToSymbolTable(0,(char*)($2),$1);}
-        | data_type IDENTIFIER ASSIGNMENT expression_statement{ addToSymbolTable(&($4),(char*)($2),$1);}
+declaration_statement: data_type IDENTIFIER { addToSymbolTable((char*)($2),$1);}
+        | data_type IDENTIFIER ASSIGNMENT expression_statement
+        {
+                checkType($1,$4); 
+                addToSymbolTable((char*)($2),$1);
+        }
         | CONSTANT data_type IDENTIFIER
         | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement
         ;
@@ -123,43 +128,42 @@ declaration_statement: data_type IDENTIFIER { addToSymbolTable(0,(char*)($2),$1)
 assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                         {
                                 int i = inTable((char*)($1));
-                                idEnum type = getType(i);
-                                update(i,&($3),type);
+                                int type = getType(i);
+                                $$ = checkType(type,$3);
                         }
-                      |IDENTIFIER ASSIGNMENT assignment_statement
+                      |IDENTIFIER ASSIGNMENT assignment_statement { $$ = checkType($1,$3); }
 
-expression_statement: math_expression {$$ = $1;}
-        | logical_expression  {printf("logical expression\n"); $$ = $1;}  
+expression_statement: math_expression { $$ = $1; }
+        | logical_expression  {printf("logical expression\n"); $$ = $1;}
+        | func_call  
         
         ;
-math_expression:  expression_statement '+' term { printf("addition\n") ;$$ = $1 + $3;}  
-        | expression_statement '-' term { printf("subtraction\n") ; $$ = $1 - $3;}  
+math_expression:  expression_statement '+' term { $$ = checkType($1,$3); }  
+        | expression_statement '-' term { $$ = checkType($1,$3); }  
         | term
         ;
-term :    term '*' factor {printf("multiplication\n") ; $$ = $1 * $3;}  
-        | term '/' factor  
-        {
-                printf("division\n"); 
-                if ((int)($3) == 0)
-                        yyerror("Division by zero");
-                $$ = $1 / $3;
-        }  
-        | factor
+term :    term '*' factor { $$ = checkType($1,$3); }  
+        | term '/' factor  { $$ = checkType($1,$3); } 
+        | factor { $$ = $1; }
 
-factor :  data_value
-         | IDENTIFIER { int i = inTable((char*)($1)) ;$$ = getValue(i); }
+factor :  data_value { $$ = $1 ; }
+         | IDENTIFIER 
+         { 
+                int i = inTable((char*)($1)) ;
+                $$ = getType(i); 
+        }
          | '(' expression_statement ')'
          |
          
-logical_expression:  NOT expression_statement {$$ = ! $2 ;}
-        | expression_statement AND expression_statement {$$ = $1 && $3 ;}
-        | expression_statement OR expression_statement {$$ = $1 || $3 ;}
-        | expression_statement GREATER_THAN expression_statement {$$ = $1 > $3 ;}
-        | expression_statement LESS_THAN expression_statement {$$ = $1 < $3 ;}
-        | expression_statement GREATER_EQUAL expression_statement {$$ = $1 >= $3 ;}
-        | expression_statement LESS_EQUAL expression_statement {$$ = $1 <= $3 ;}
-        | expression_statement EQUAL expression_statement {$$ = $1 == $3 ;}
-        | expression_statement NOT_EQUAL expression_statement {$$ = $1 != $3 ;}
+logical_expression:  NOT expression_statement { $$ = $1; }
+        | expression_statement AND expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement OR expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement GREATER_THAN expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement LESS_THAN expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement GREATER_EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement LESS_EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
+        | expression_statement NOT_EQUAL expression_statement { checkType($1,$3);  $$ = 3;}
         ;
 
 block_statement: '{''}'
@@ -169,24 +173,24 @@ block_statement: '{''}'
 loop_block_statement : '{''}'
                       |'{' loops_statements '}'
 
-if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement
-        | IF '(' declaration_or_assignment_or_expression ')' statement else_statement
+if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement {$$ = checkType($3,3);}
+        | IF '(' declaration_or_assignment_or_expression ')' statement else_statement {$$ = checkType($3,3);}
         ;
 
 else_statement : ELSE statement
                | ELSE block_statement
                | SEMICOLON
 
-nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement nested_else_statement
-        | IF '(' declaration_or_assignment_or_expression ')' loops_statement nested_else_statement
+nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement nested_else_statement {$$ = checkType($3,3);}
+        | IF '(' declaration_or_assignment_or_expression ')' loops_statement nested_else_statement {$$ = checkType($3,3);}
         ;
 
 nested_else_statement : ELSE loops_statement
                | ELSE loop_block_statement
                | SEMICOLON
 
-while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement
-        | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement 
+while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement {$$ = checkType($3,3);}
+        | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement  {$$ = checkType($3,3);}
         ;
     
 for_statement: for_declaration  loop_block_statement
@@ -194,13 +198,17 @@ for_statement: for_declaration  loop_block_statement
         ;
 
 for_declaration: FOR '(' declaration_or_assignment_or_expression SEMICOLON declaration_or_assignment_or_expression SEMICOLON expression_or_assignment ')'
+{
+        checkType($3,$7);
+        checkType($5,3);
+}
 
 
-do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'
-                    | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')'
-switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' case_statement '}'
+do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($5,3);}
+                    | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($5,3);}
+switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' case_statement '}' {$$ = checkType($3,$6);}
 
-case_statement : CASE expression_or_assignment COLON loops_statements case_statement
+case_statement : CASE expression_or_assignment COLON loops_statements case_statement { $$ = $2;}
                 | DEFAULT COLON loops_statements
                 | 
                 ;
@@ -210,13 +218,12 @@ arguments: arguments ',' argument
         |
         ;
 
-argument : data_type IDENTIFIER 
+argument : data_type IDENTIFIER { addToSymbolTable((char*)($2),$1);}
         
 function : VOID IDENTIFIER '('arguments')' block_statement
-        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' 
-        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' 
-print_func : PRINT'('expression_statement')' {}
-
+        |  data_type IDENTIFIER  '('arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON  '}' {$$ = checkType($1,$9);}
+        | data_type IDENTIFIER  '('arguments')'  '{' RETURN expression_or_assignment SEMICOLON '}' {$$ = checkType($1,$8);}
+func_call: IDENTIFIER '('arguments')'
 %%
 
 void yyerror(char *s) {
@@ -225,19 +232,11 @@ void yyerror(char *s) {
 }
 int idx = 0 ;
 struct nodeTypeTag symbol_table[100];
-void addToSymbolTable(void * value, char* name , int type) { 
+void addToSymbolTable(char* name , int type) { 
         nodeType p; 
-        p.type = typeId; 
-        p.id.type = typeInt;
+        p.type = typeId;
+        p.id.type = type;
         p.id.name = name;
-        if ( type == 1)
-                p.id.integer.value = *((int*)value);
-        else if (type == 2)
-                p.id.floatNumber.value = *((float*)value);
-        else if(type == 3)
-                p.id.boolean.value = *((int*)value);
-        else if (type == 4)
-                p.id.charcter.value = *((char*)value);
         symbol_table[idx++] = p;
 } 
 int inTable(char* name)
@@ -248,29 +247,16 @@ int inTable(char* name)
         yyerror("variable used before declaration") ; 
         return -1;
 } 
-int getValue(int i)
+int getType( int i)
 {       
-        if (i)
-                return symbol_table[i].id.integer.value;
+        return symbol_table[i].id.type;
 }
-idEnum getType( int i)
-{     
-        if (i)
-                return symbol_table[i].id.type;
-}
-void update(int i , void* value , idEnum type){
-        if  (type == typeInt){
-                symbol_table[i].id.integer.value = *((int*)value);
+int checkType(int x , int y){
+        if (x != y){
+                yyerror("type missmatch");  
+                return 0;
         }
-        else if (type == typeFloat){
-                symbol_table[i].id.floatNumber.value = *((float*)value);
-        }
-        else if (type == typeBoolean){
-                symbol_table[i].id.boolean.value = *((int*)value);
-        }
-        else if (type == typeChar){
-                symbol_table[i].id.charcter.value = *((char*)value);
-        }
+        return x;
 }
 int main(void) {
     yyparse();
