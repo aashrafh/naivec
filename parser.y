@@ -12,6 +12,7 @@
     #define typeString 5
     #define identifierKind 1
     #define constantKind 2
+	#define constantValueKind 5
     #define functionKind 3
     void yyerror(char *s);
     int yylex();
@@ -23,11 +24,15 @@
     int checkKind (int kind);
     void setUsed(int i);
     void opr(int oper, int nops, ...);
-	int ex(struct nodeTypeTag *p) ; 
+    int ex(struct nodeTypeTag *p) ; 
     int scope = 0;
     int scope_inc = 1;
 	int idx = 0 ;
 	struct nodeTypeTag symbol_table[10000];
+	struct valueNodes values[10000];
+	int valueIdxInsert = 0;
+	int valueIdx = 0; 
+	void addValue(void* value , int type);
 %}
 
 
@@ -117,10 +122,10 @@ data_type: INT { $$ = typeInteger; }
         ;
 
 data_value: 
-        INT_TYPE { $$ = typeInteger }
-        | FLOAT_TYPE { $$ = typeFloat }
-        | BOOLEAN_TYPE { $$ = typeBoolean }
-        | CHARACTER_TYPE { $$ = typeCharchter }
+        INT_TYPE { addValue(&($1),typeInteger);$$ = typeInteger }
+        | FLOAT_TYPE { addValue((void*)$1,typeFloat);$$ = typeFloat }
+        | BOOLEAN_TYPE { addValue((void*)$1,typeBoolean);$$ = typeBoolean }
+        | CHARACTER_TYPE { addValue((void*)$1,typeCharchter);$$ = typeCharchter }
         | STRING_TYPE { $$ = typeString }
         ;
 
@@ -169,14 +174,24 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                                                 int type = getType(i);
                                                 scope = temp;
                                                 $$ = checkType(type,$3);
-												opr('=', 2, (char*)($1), (char*)($1)); 
+												if(values[valueIdx].type != -1)
+													opr('=', 2, (char*)($1), "$");
+												else {
+													opr('=', 2, (char*)($1), values[valueIdx]);
+													valueIdx ++;
+												}
                                         }
                                 }
                                 else{
                                         checkKind(getKind(i));
                                         int type = getType(i);
                                         $$ = checkType(type,$3);
-										opr('=', 2, (char*)($1), (char*)($1)); 
+										if(values[valueIdx].type != -1)
+											opr('=', 2, (char*)($1), "$");
+										else {
+											opr('=', 2, (char*)($1), values[valueIdx].name);
+											valueIdx ++;
+										}
                                 }
                         }
                       |IDENTIFIER ASSIGNMENT assignment_statement 
@@ -233,11 +248,15 @@ factor :  data_value { $$ = $1 ; }
                                 setUsed(i);
                                 $$ = getType(i);
                                 scope = temp;
+								printf("identifier\n");
+								addValue((char*)$1,-1);
                         }
                 }
                 else{
                         setUsed(i);
                         $$ = getType(i); 
+						printf("identifier\n");
+						addValue((char*)$1,-1);
                 }
         }
          | '(' expression_statement ')'{$$ = $2;}
@@ -346,18 +365,41 @@ function_call: IDENTIFIER '('arguments')'
         }
 %%
 
+
+void addValue(void* value , int type)
+{
+	struct valueNodes p;
+	p.type = type;
+	printf("add value %d", *((int *)value));
+	if (type == typeInteger)
+		p.integer = *((int *)value);
+	else if (type == typeFloat)
+		p.floatNumber = *((float *)value);
+	else if (type == typeBoolean)
+		p.boolean = *((int *)value);
+	else if (type == typeCharchter)
+		p.character = *((char *)value);
+	else
+		p.name = (char*)value;
+	values[valueIdxInsert++] = p;
+}
+
+
+
+
+
 void yyerror(char *s) {
     fprintf(stderr, "%s\n", s);
     exit(0);
 }
 void addToSymbolTable(char* name , int type, int kind) { 
-        struct nodeTypeTag p; 
-        p.isUsed = 0;
-        p.type = type;
-        p.kind = kind;
-        p.name = name;
-        p.scope = scope;
-        symbol_table[idx++] = p;
+	struct nodeTypeTag p; 
+	p.isUsed = 0;
+	p.type = type;
+	p.kind = kind;
+	p.name = name;
+	p.scope = scope;
+	symbol_table[idx++] = p;
 } 
 int inTable(char* name)
 {
@@ -408,22 +450,41 @@ void opr(int oper, int nops, ...) {
         va_start(ap, nops); 
         for (int i = 0; i < nops; i++){
 			n[i]= va_arg(ap, char*);
-			int place = inTable(n[i]);
-			if(place == -1){
-				int temp = scope;
-				scope = 0 ;
-				place = inTable(n[i]);
-				if(place == -1)
-					yyerror("variable used before declaration") ; 
+			printf("%s\n",n[i]);
+			if(n[i]=="$"){
+				struct nodeTypeTag p1;
+				p1.kind = constantValueKind;
+				p1.type = values[valueIdx].type;
+				if (p1.type == typeInteger)
+					p1.value = &(values[valueIdx].integer);
+				else if (p1.type == typeFloat)
+					p1.value = &(values[valueIdx].integer);
+				else if (p1.type == typeBoolean)
+					p1.value = &(values[valueIdx].integer);
+				else if (p1.type == typeCharchter)
+					p1.value = &(values[valueIdx].integer);
+				p.opr.op[i] = &p1;
+				valueIdx ++;
+			}
+			else{
+				int place = inTable(n[i]);
+				if(place == -1){
+					int temp = scope;
+					scope = 0 ;
+					place = inTable(n[i]);
+					if(place == -1)
+						yyerror("variable used before declaration") ; 
+					else{
+						scope = temp;
+						p.opr.op[i] = &symbol_table[place];
+					}
+				}
 				else{
-					scope = temp;
 					p.opr.op[i] = &symbol_table[place];
 				}
 			}
-			else{
-				p.opr.op[i] = &symbol_table[place];
-			}
 	} 
+	printf("%s\n",p.opr.op[1]->name);
         va_end(ap);
         symbol_table[idx++] = p;
 } 
@@ -432,6 +493,16 @@ static int lbl;
 int ex(nodeType *p) { 
 	int lbl1, lbl2;  
 	switch(p->kind) {
+		case constantValueKind:
+			if (p->type == typeInteger) 
+				printf("\tpush\t%d\n", *((int*)p->value)); 
+			if (p->type == typeFloat) 
+				printf("\tpush\t%d\n", *((float*)p->value));
+			if (p->type == typeBoolean) 
+				printf("\tpush\t%d\n", *((int*)p->value));
+			if (p->type == typeCharchter) 
+				printf("\tpush\t%s\n", *((char*)p->value));
+			break;
 		case constantKind: 
 			printf("\tpush\t%s\n", p->name); 
 			break; 
@@ -453,7 +524,11 @@ int ex(nodeType *p) {
 
 //------------------------------------------------
 int main(void) {
+	printf("start\n");
     yyparse();
+	printf("end\n");
+	for (int i = 0 ; i < valueIdxInsert;i++)
+		printf("value: %d\n",values[i].integer);
     for (int i=0;i<idx;i++){
 		if(symbol_table[i].kind == 4)
 		{
