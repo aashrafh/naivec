@@ -1,6 +1,7 @@
 %{
     #include<stdio.h>
     #include<stdlib.h>
+    #include <stdarg.h> 
     #include <string.h>
     #include "parser.h"
     #define typeVoid 0
@@ -21,8 +22,12 @@
     int checkType(int x , int y);
     int checkKind (int kind);
     void setUsed(int i);
+    void opr(int oper, int nops, ...);
+	int ex(struct nodeTypeTag *p) ; 
     int scope = 0;
     int scope_inc = 1;
+	int idx = 0 ;
+	struct nodeTypeTag symbol_table[10000];
 %}
 
 
@@ -164,13 +169,15 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                                                 int type = getType(i);
                                                 scope = temp;
                                                 $$ = checkType(type,$3);
+												opr('=', 2, (char*)($1), (char*)($1)); 
                                         }
                                 }
                                 else{
                                         checkKind(getKind(i));
                                         int type = getType(i);
                                         $$ = checkType(type,$3);
-                                } 
+										opr('=', 2, (char*)($1), (char*)($1)); 
+                                }
                         }
                       |IDENTIFIER ASSIGNMENT assignment_statement 
                         {
@@ -343,10 +350,8 @@ void yyerror(char *s) {
     fprintf(stderr, "%s\n", s);
     exit(0);
 }
-int idx = 0 ;
-struct nodeTypeTag symbol_table[10000];
 void addToSymbolTable(char* name , int type, int kind) { 
-        nodeType p; 
+        struct nodeTypeTag p; 
         p.isUsed = 0;
         p.type = type;
         p.kind = kind;
@@ -392,11 +397,71 @@ int checkKind (int kind)
                 yyerror("function cannot be modified");  
         return kind;
 }
+void opr(int oper, int nops, ...) {
+        struct nodeTypeTag p; 
+        p.isUsed = 1;
+        p.kind = 4;
+        va_list ap;   
+        p.opr.oper = oper; 
+        p.opr.nops = nops; 
+		char* n[nops];
+        va_start(ap, nops); 
+        for (int i = 0; i < nops; i++){
+			n[i]= va_arg(ap, char*);
+			int place = inTable(n[i]);
+			if(place == -1){
+				int temp = scope;
+				scope = 0 ;
+				place = inTable(n[i]);
+				if(place == -1)
+					yyerror("variable used before declaration") ; 
+				else{
+					scope = temp;
+					p.opr.op[i] = &symbol_table[place];
+				}
+			}
+			else{
+				p.opr.op[i] = &symbol_table[place];
+			}
+	} 
+        va_end(ap);
+        symbol_table[idx++] = p;
+} 
+//----------------------------------------------
+static int lbl; 
+int ex(nodeType *p) { 
+	int lbl1, lbl2;  
+	switch(p->kind) {
+		case constantKind: 
+			printf("\tpush\t%s\n", p->name); 
+			break; 
+		case identifierKind: 
+			printf("\tpush\t%s\n", p->name); 
+			break; 
+		case 4:
+			switch(p->opr.oper){
+				case '=':
+					ex(p->opr.op[1]); 
+					printf("\tpop\t%s\n", p->opr.op[0]->name); 
+					break; 
+				}
+		} 
+	return 0; 
+}  
+
+
+
+//------------------------------------------------
 int main(void) {
     yyparse();
+    for (int i=0;i<idx;i++){
+		if(symbol_table[i].kind == 4)
+		{
+			ex(&(symbol_table[i]));
+		}
+    }
     for (int i=0;i<idx;i++)
     {
-        printf("scope %d\n",symbol_table[i].scope);
         if (symbol_table[i].isUsed == 0)
         {
                 printf("%s is not used\n",symbol_table[i].name);
