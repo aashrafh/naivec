@@ -22,6 +22,7 @@
     int checkKind (int kind);
     void setUsed(int i);
     int scope = 0;
+    int scope_inc = 1;
 %}
 
 
@@ -151,19 +152,49 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                         {
                                 int i = inTable((char*)($1));
                                 if (i == -1)
-                                        yyerror("variable used before declaration") ; 
-                                checkKind(getKind(i));
-                                int type = getType(i);
-                                $$ = checkType(type,$3);
+                                {
+                                        int temp = scope;
+                                        scope = 0;
+                                        i = inTable((char*)($1)) ;
+                                        if (i == -1)
+                                                yyerror("variable used before declaration") ; 
+                                        else
+                                        {
+                                                checkKind(getKind(i));
+                                                int type = getType(i);
+                                                scope = temp;
+                                                $$ = checkType(type,$3);
+                                        }
+                                }
+                                else{
+                                        checkKind(getKind(i));
+                                        int type = getType(i);
+                                        $$ = checkType(type,$3);
+                                } 
                         }
                       |IDENTIFIER ASSIGNMENT assignment_statement 
                         {
                                 int i = inTable((char*)($1));
                                 if (i == -1)
-                                        yyerror("variable used before declaration") ; 
-                                checkKind(getKind(i));
-                                int type = getType(i);
-                                $$ = checkType(type,$3);
+                                {
+                                        int temp = scope;
+                                        scope = 0;
+                                        i = inTable((char*)($1)) ;
+                                        if (i == -1)
+                                                yyerror("variable used before declaration") ; 
+                                        else
+                                        {
+                                                checkKind(getKind(i));
+                                                int type = getType(i);
+                                                scope = temp;
+                                                $$ = checkType(type,$3);
+                                        }
+                                }
+                                else{
+                                        checkKind(getKind(i));
+                                        int type = getType(i);
+                                        $$ = checkType(type,$3);
+                                } 
                         }
 
 expression_statement: math_expression { $$ = $1; }
@@ -184,12 +215,26 @@ factor :  data_value { $$ = $1 ; }
         { 
                 int i = inTable((char*)($1)) ;
                 if (i == -1)
-                        yyerror("variable used before declaration") ; 
-                setUsed(i);
-                $$ = getType(i); 
+                {
+                        int temp = scope;
+                        scope = 0;
+                        i = inTable((char*)($1)) ;
+                        if (i == -1)
+                                yyerror("variable used before declaration") ; 
+                        else
+                        {
+                                setUsed(i);
+                                $$ = getType(i);
+                                scope = temp;
+                        }
+                }
+                else{
+                        setUsed(i);
+                        $$ = getType(i); 
+                }
         }
-         | '(' expression_statement ')'
-         |
+         | '(' expression_statement ')'{$$ = $2;}
+         | { $$ = -1; }
          
 logical_expression:  NOT expression_statement { $$ = $1; }
         | expression_statement AND expression_statement { checkType($1,$3);  $$ = typeBoolean;}
@@ -203,74 +248,82 @@ logical_expression:  NOT expression_statement { $$ = $1; }
         ;
 
 block_statement :  '{''}'  
-        |   '{' {scope += 1;}  statements {scope -= 1;}  '}'  
+        |   '{' statements '}'  
         ;
 
 loop_block_statement : '{''}'
-                      |'{' {scope += 1;} loops_statements {scope -= 1;} '}'
+                      |'{' loops_statements'}'
 
-if_statement: IF '(' declaration_or_assignment_or_expression ')' block_statement else_statement {$$ = checkType($3,typeBoolean); }
-        | IF '(' declaration_or_assignment_or_expression ')' statement else_statement {$$ = checkType($3,typeBoolean);}
+if_statement: IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} block_statement else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+        | IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} statement else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
         ;
 
 else_statement : ELSE statement
                | ELSE block_statement
                | SEMICOLON
 
-nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' loop_block_statement nested_else_statement {$$ = checkType($3,typeBoolean);}
-        | IF '(' declaration_or_assignment_or_expression ')' loops_statement nested_else_statement {$$ = checkType($3,typeBoolean);}
+nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loop_block_statement nested_else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+        | IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loops_statement nested_else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
         ;
 
 nested_else_statement : ELSE loops_statement
                | ELSE loop_block_statement
                | SEMICOLON
 
-while_statement: WHILE '(' declaration_or_assignment_or_expression ')' loop_block_statement {$$ = checkType($3,typeBoolean);}
-        | WHILE '(' declaration_or_assignment_or_expression ')' loops_statement  {$$ = checkType($3,typeBoolean);}
+while_statement: WHILE  '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loop_block_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+        | WHILE  '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loops_statement  {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
         ;
     
 for_statement: for_declaration  loop_block_statement
         | for_declaration loops_statement
         ;
 
-for_declaration: FOR '(' declaration_or_assignment_or_expression SEMICOLON declaration_or_assignment_or_expression SEMICOLON expression_or_assignment ')'
-                        { checkType($5,typeBoolean); }
+for_declaration: FOR {scope = scope_inc;}'(' declaration_or_assignment_or_expression SEMICOLON declaration_or_assignment_or_expression SEMICOLON expression_or_assignment ')'
+                        { checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
 
 
-do_while_statement : DO loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($5,typeBoolean);}
-                    | DO loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($5,typeBoolean);}
-switch_statement : SWITCH '('declaration_or_assignment_or_expression')' '{' {scope += 1;} case_statement {scope -= 1;} '}' {$$ = checkType($3,$6);}
+do_while_statement : DO {scope = scope_inc;} loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
+                    | DO {scope = scope_inc;}loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
+switch_statement : SWITCH {scope = scope_inc;}'('declaration_or_assignment_or_expression')' '{' case_statement '}' 
+{
+        if ($$ != -1)
+                $$ = checkType($4,$7); 
+        scope = 0; scope_inc += 1;
+}
 
 case_statement : CASE expression_or_assignment COLON loops_statements case_statement { $$ = $2;}
-                | DEFAULT COLON loops_statements
-                | 
+                | DEFAULT COLON loops_statements { $$ = -1;}
+                | { $$ = -1;}
                 ;
 
-arguments: arguments ',' argument
-        | argument
+arguments: arguments ',' argument 
+        | argument 
         |
         ;
 
-argument : data_type IDENTIFIER { addToSymbolTable((char*)($2),$1,identifierKind);}
+argument : data_type IDENTIFIER { scope = scope_inc; addToSymbolTable((char*)($2),$1,identifierKind);}
         
-function : VOID IDENTIFIER '('arguments')' block_statement 
+function : VOID IDENTIFIER '(' arguments')'  block_statement 
         {
                 if(inTable((char*)$2) != -1)
                         yyerror("this function has been declared before");
-                 addToSymbolTable((char*)($2),typeVoid,functionKind);
+                scope = 0; scope_inc += 1;
+                addToSymbolTable((char*)($2),typeVoid,functionKind);
         }
-        |  data_type IDENTIFIER  '('arguments')'  '{' {scope += 1;} statements RETURN expression_or_assignment SEMICOLON {scope -= 1;} '}' 
+        |  data_type IDENTIFIER  '(' arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON '}' 
         {
                 if(inTable((char*)$2) != -1)
                         yyerror("this function has been declared before");
                 $$ = checkType($1,$9); 
+                scope = 0; scope_inc += 1;
                 addToSymbolTable((char*)($2),$1,functionKind); 
         }
-        | data_type IDENTIFIER  '('arguments')'  '{' {scope += 1;} RETURN expression_or_assignment SEMICOLON  {scope -= 1;} '}'
+        | data_type IDENTIFIER  '(' arguments')' '{'  RETURN expression_or_assignment SEMICOLON   '}'
         {
                 if(inTable((char*)$2) != -1)
                         yyerror("this function has been declared before");
                 $$ = checkType($1,$8); 
+                scope = 0; scope_inc += 1;
                 addToSymbolTable((char*)($2),$1,functionKind); 
         }
 
@@ -291,7 +344,7 @@ void yyerror(char *s) {
     exit(0);
 }
 int idx = 0 ;
-struct nodeTypeTag symbol_table[100];
+struct nodeTypeTag symbol_table[10000];
 void addToSymbolTable(char* name , int type, int kind) { 
         nodeType p; 
         p.isUsed = 0;
@@ -304,7 +357,7 @@ void addToSymbolTable(char* name , int type, int kind) {
 int inTable(char* name)
 {
         for (int i =0;i < idx;i++)
-                if ( !strcmp(name,symbol_table[i].name) && symbol_table[i].scope <= scope )
+                if ( !strcmp(name,symbol_table[i].name) && symbol_table[i].scope == scope )
                         return i;      
         return -1;
 } 
@@ -321,6 +374,10 @@ void setUsed(int i)
         symbol_table[i].isUsed = 1;
 }
 int checkType(int x , int y){
+        if (x == -1)
+                return y;
+        else if (y == -1)
+                return x;
         if (x != y){
                 yyerror("type missmatch");  
                 return 0;

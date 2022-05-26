@@ -1,16 +1,31 @@
 int x = 3;
+int g = 130 ;
+if (false)
+{
+    int z = g;
+};
 if (true)
 {
-    int g = 130 ;
-    if (false)
-    {
-        //int z ;
-    };
-    if (true)
-    {
-        int z = x;
-    };
-    g = 3;
+    int z;
 };
+g = 3;
 int y = 4;
-int z = x;
+int z;
+if (bool qwewr = true){
+    int x = x;
+};
+for ( ; true ; ) ;
+while(true);
+do{
+
+}while(true);
+switch(x = 1){
+    case 10: int x = 1;
+}
+int func(int x){
+    int y = 1;
+    return 0;
+}
+
+int x1 = 1;
+int x2 = 2 * - x1;
