@@ -304,7 +304,7 @@ void addToSymbolTable(char* name , int type, int kind) {
 int inTable(char* name)
 {
         for (int i =0;i < idx;i++)
-                if ( !strcmp(name,symbol_table[i].name) && symbol_table[i].scope == scope )
+                if ( !strcmp(name,symbol_table[i].name) && symbol_table[i].scope <= scope )
                         return i;      
         return -1;
 } 
@@ -339,10 +339,10 @@ int main(void) {
     yyparse();
     for (int i=0;i<idx;i++)
     {
+        printf("scope %d\n",symbol_table[i].scope);
         if (symbol_table[i].isUsed == 0)
         {
                 printf("%s is not used\n",symbol_table[i].name);
-                printf("scope %d\n",symbol_table[i].scope);
         }
     }
     return 0;

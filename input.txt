@@ -4,8 +4,13 @@ if (true)
     int g = 130 ;
     if (false)
     {
-        int z ;
+        //int z ;
     };
-    int z = 3;
+    if (true)
+    {
+        int z = x;
+    };
+    g = 3;
 };
 int y = 4;
+int z = x;
