@@ -324,8 +324,78 @@ math_expression:  expression_statement '+' term
 	}  
 	| term
 	;
-term :    term '*' factor { $$ = checkType($1,$3); }  
-	| term '/' factor  { $$ = checkType($1,$3); } 
+term :    term '*' factor 
+{
+	int temp = valueIdx;
+	valueIdx = valueIdxInsert - 2;
+	if (par == 1){
+			if(values[valueIdx].type != -1)
+				opr('*', 1,  "$");
+			else {
+				opr('*', 1, values[valueIdx]);
+				valueIdx ++;
+			}
+		}
+		else{
+			if(values[valueIdx].type != -1 && values[valueIdx+1].type != -1){
+				opr('*', 2, "$", "$");
+			}
+			else if (values[valueIdx].type != -1) {
+				opr('*', 2, "$", values[valueIdx+1].name);
+				valueIdx ++;
+			}
+			else if (values[valueIdx+1].type != -1){
+				opr('*', 2, values[valueIdx].name, "$"); 
+				valueIdx ++;
+			}
+			else{
+				opr('*', 2, values[valueIdx].name, values[valueIdx+1].name);
+				valueIdx += 2;
+			}
+			// char w = '%';
+			// addValue(&w,typeCharchter);
+			//valueIdx --;
+			par =1;
+		} 
+	valueIdx = temp;
+	$$ = checkType($1,$3); 
+}  
+	| term '/' factor  
+{ 
+	int temp = valueIdx;
+	valueIdx = valueIdxInsert - 2;
+	if (par == 1){
+			if(values[valueIdx].type != -1)
+				opr('/', 1,  "$");
+			else {
+				opr('/', 1, values[valueIdx]);
+				valueIdx ++;
+			}
+		}
+		else{
+			if(values[valueIdx].type != -1 && values[valueIdx+1].type != -1){
+				opr('/', 2, "$", "$");
+			}
+			else if (values[valueIdx].type != -1) {
+				opr('/', 2, "$", values[valueIdx+1].name);
+				valueIdx ++;
+			}
+			else if (values[valueIdx+1].type != -1){
+				opr('/', 2, values[valueIdx].name, "$"); 
+				valueIdx ++;
+			}
+			else{
+				opr('/', 2, values[valueIdx].name, values[valueIdx+1].name);
+				valueIdx += 2;
+			}
+			// char w = '%';
+			// addValue(&w,typeCharchter);
+			//valueIdx --;
+			par =1;
+		} 
+	valueIdx = temp;
+	$$ = checkType($1,$3); 
+} 
 	| factor { $$ = $1; }
 
 factor :  data_value { $$ = $1 ; }
@@ -464,6 +534,7 @@ void addValue(void* value , int type)
 {
 	struct valueNodes p;
 	p.type = type;
+	p.used = 0;
 	if (type == typeInteger)
 		p.integer = *((int *)value);
 	else if (type == typeFloat)
@@ -543,9 +614,11 @@ void opr(int oper, int nops, ...) {
 	va_start(ap, nops); 
 	for (int i = 0; i < nops; i++){
 		n[i]= va_arg(ap, char*);
-		if(!strcmp(n[i],"%"))
-			continue;
 		if(!strcmp(n[i],"$")){
+			while(values[valueIdx].used == 1){
+				valueIdx ++;
+			}
+			values[valueIdx].used = 1;
 					struct nodeTypeTag *p1;
 					size_t nodeSize; 
 					/* allocate node */ 

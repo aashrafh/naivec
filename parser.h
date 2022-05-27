@@ -23,6 +23,7 @@ typedef struct nodeTypeTag
 typedef struct valueNodes
 {
     int type;
+    int used;
     union
     {
         int integer;
