@@ -139,9 +139,9 @@ declaration_or_assignment_or_expression : expression_or_assignment
 declaration_statement: data_type IDENTIFIER 
         {
                 printf("new\n");
-			if(inTable((char*)$2) != -1)
-					yyerror("this variable has been declared before");
-			addToSymbolTable((char*)($2),$1,identifierKind);
+                if(inTable((char*)$2) != -1)
+                                yyerror("this variable has been declared before");
+                addToSymbolTable((char*)($2),$1,identifierKind);
         }
         | data_type IDENTIFIER ASSIGNMENT expression_statement
         {
@@ -532,9 +532,7 @@ int ex(nodeType *p) {
 
 //------------------------------------------------
 int main(void) {
-	printf("start\n");
     yyparse();
-	printf("end\n");
     for (int i=0;i<idx;i++){
 		if(symbol_table[i].kind == 4)
 		{
