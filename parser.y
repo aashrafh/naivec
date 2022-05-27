@@ -33,6 +33,8 @@
 	int valueIdxInsert = 0;
 	int valueIdx = 0; 
 	int par = 2;
+	int addSubLvl = 0;
+	int mulDivLvl = 0;
 	void addValue(void* value , int type);
 %}
 
@@ -258,39 +260,47 @@ expression_statement: math_expression { $$ = $1; }
 	;
 math_expression:  expression_statement '+' term 
 	{
+		mulDivLvl = 0;
+		int temp = valueIdx;
+		valueIdx = valueIdxInsert - 1;
 		if (par == 1){
 			if(values[valueIdx].type != -1)
 				opr('+', 1,  "$");
 			else {
-				opr('+', 1, values[valueIdx]);
+				opr('+', 1, values[valueIdx].name);
+				values[valueIdx].used = 1;
 				valueIdx ++;
 			}
 		}
 		else{
+			valueIdx --;
 			if(values[valueIdx].type != -1 && values[valueIdx+1].type != -1){
 				opr('+', 2, "$", "$");
 			}
 			else if (values[valueIdx].type != -1) {
 				opr('+', 2, "$", values[valueIdx+1].name);
+				values[valueIdx+1].used = 1;
 				valueIdx ++;
 			}
 			else if (values[valueIdx+1].type != -1){
-				opr('+', 2, values[valueIdx].name, "$"); 
 				valueIdx ++;
+				opr('+', 2, values[valueIdx-1].name, "$"); 
+				values[valueIdx-1].used = 1;
 			}
 			else{
 				opr('+', 2, values[valueIdx].name, values[valueIdx+1].name);
 				valueIdx += 2;
 			}
-			// char w = '%';
-			// addValue(&w,typeCharchter);
-			//valueIdx --;
 			par =1;
 		}
+		valueIdx = temp;
 		$$ = checkType($1,$3); 
 	}  
 	| expression_statement '-' term 
 	{ 
+		mulDivLvl = 0;
+		int temp = valueIdx;
+		valueIdx = valueIdxInsert - 1;
 		if (par == 1){
 			if(values[valueIdx].type != -1)
 				opr('-', 1,  "$");
@@ -300,6 +310,7 @@ math_expression:  expression_statement '+' term
 			}
 		}
 		else{
+			valueIdx --;
 			if(values[valueIdx].type != -1 && values[valueIdx+1].type != -1){
 				opr('-', 2, "$", "$");
 			}
@@ -320,6 +331,7 @@ math_expression:  expression_statement '+' term
 			//valueIdx --;
 			par =1;
 		}
+		valueIdx = temp;
 		$$ = checkType($1,$3); 
 	}  
 	| term
@@ -327,8 +339,8 @@ math_expression:  expression_statement '+' term
 term :    term '*' factor 
 {
 	int temp = valueIdx;
-	valueIdx = valueIdxInsert - 2;
-	if (par == 1){
+	valueIdx = valueIdxInsert - 1;
+	if (par == 1 && mulDivLvl == 1){
 			if(values[valueIdx].type != -1)
 				opr('*', 1,  "$");
 			else {
@@ -337,6 +349,7 @@ term :    term '*' factor
 			}
 		}
 		else{
+			valueIdx --;
 			if(values[valueIdx].type != -1 && values[valueIdx+1].type != -1){
 				opr('*', 2, "$", "$");
 			}
@@ -356,15 +369,16 @@ term :    term '*' factor
 			// addValue(&w,typeCharchter);
 			//valueIdx --;
 			par =1;
-		} 
+		}
+	mulDivLvl = 1 ;
 	valueIdx = temp;
 	$$ = checkType($1,$3); 
 }  
 	| term '/' factor  
 { 
 	int temp = valueIdx;
-	valueIdx = valueIdxInsert - 2;
-	if (par == 1){
+	valueIdx = valueIdxInsert - 1;
+	if (par == 1 && mulDivLvl == 1){
 			if(values[valueIdx].type != -1)
 				opr('/', 1,  "$");
 			else {
@@ -373,6 +387,7 @@ term :    term '*' factor
 			}
 		}
 		else{
+			valueIdx --;
 			if(values[valueIdx].type != -1 && values[valueIdx+1].type != -1){
 				opr('/', 2, "$", "$");
 			}
@@ -392,7 +407,8 @@ term :    term '*' factor
 			// addValue(&w,typeCharchter);
 			//valueIdx --;
 			par =1;
-		} 
+		}
+	mulDivLvl = 1 ;
 	valueIdx = temp;
 	$$ = checkType($1,$3); 
 } 
@@ -661,42 +677,75 @@ void opr(int oper, int nops, ...) {
 	symbol_table[idx++] = p;
 } 
 //----------------------------------------------
-static int lbl; 
+static int lbl;
+static int var;
+int known = 0; 
+int operation = 0;
 int ex(nodeType *p) { 
 	int lbl1, lbl2;  
 	switch(p->kind) {
 		case constantValueKind:
-			if (p->type == typeInteger) 
+			if (p->type == typeInteger){
 				printf("\tpush\t%d\n", *((int*)p->value)); 
-			if (p->type == typeFloat) 
+				known = 1;
+			} 
+			else if (p->type == typeFloat) {
 				printf("\tpush\t%d\n", *((float*)p->value));
-			if (p->type == typeBoolean) 
+				known = 1;
+			}
+			else if (p->type == typeBoolean) {
 				printf("\tpush\t%d\n", *((int*)p->value));
-			if (p->type == typeCharchter) 
+				known = 1;
+			}
+			else if (p->type == typeCharchter) {
 				printf("\tpush\t%s\n", *((char*)p->value));
+				known = 1;
+			}
+			else
+				known -= 1;
 			break;
 		case constantKind: 
 			printf("\tpush\t%s\n", p->name); 
 			break; 
-		case identifierKind: 
+		case identifierKind:
+			known = 1; 
 			printf("\tpush\t%s\n", p->name); 
 			break; 
 		case 4:
 			switch(p->opr.oper){
 				case '=':
-					if(p->opr.nops > 1)
-						ex(p->opr.op[1]); 
-					printf("\tpop\t%s\n", p->opr.op[0]->name); 
+					if(p->opr.nops > 1){
+						ex(p->opr.op[1]);
+					}
+					if (operation == 1)
+						printf("\tpush\tt%d\n", var);	 
+					printf("\tpop\t%s\n", p->opr.op[0]->name);
+					var = 0; 
+					operation = 0;
 					break; 
 				default: 
+					operation = 1;
 					ex(p->opr.op[0]);
-					if(p->opr.nops > 1) 
-						ex(p->opr.op[1]); 
+					if(p->opr.nops > 1){
+						ex(p->opr.op[1]);
+						var ++;	
+					} 
+					else if(p->opr.nops == 1){
+						if(known == 0){
+							var -= 1;
+							printf("\tpush\tt%d\n",var++ );
+							printf("\tpush\tt%d\n",var++ );
+						}
+						else
+							printf("\tpush\tt%d\n",var++ );
+					}
 					switch(p->opr.oper) { 
-					case '+': printf("\tadd\n"); break; 
-					case '-': printf("\tsub\n"); break; 
-					case '*': printf("\tmul\n"); break; 
-					case '/': printf("\tdiv\n"); break; 
+					case '+': printf("\tadd\tt%d\n",var); break; 
+					case '-': printf("\tsub\tt%d\n",var); break; 
+					case '*': printf("\tmul\tt%d\n",var); break; 
+					case '/': printf("\tdiv\tt%d\n",var); break;
+					case '&': printf("\tand\t"); break; 
+					case '|': printf("\tor\t"); break; 
 					case '<': printf("\tcompLT\n"); break; 
 					case '>': printf("\tcompGT\n"); break; 
 					// case "GE": printf("\tcompGE\n"); break; 
