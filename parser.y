@@ -89,8 +89,8 @@
 program: statements    
         ;
 
-statements: statement
-        | statements statement
+statements: statement 
+        | statements statement 
         ;
 
 statement: declaration_or_assignment_or_expression SEMICOLON 
@@ -123,9 +123,9 @@ data_type: INT { $$ = typeInteger; }
 
 data_value: 
         INT_TYPE { addValue(&($1),typeInteger);$$ = typeInteger }
-        | FLOAT_TYPE { addValue((void*)$1,typeFloat);$$ = typeFloat }
-        | BOOLEAN_TYPE { addValue((void*)$1,typeBoolean);$$ = typeBoolean }
-        | CHARACTER_TYPE { addValue((void*)$1,typeCharchter);$$ = typeCharchter }
+        | FLOAT_TYPE { addValue(&($1),typeFloat);$$ = typeFloat }
+        | BOOLEAN_TYPE { addValue(&($1),typeBoolean);$$ = typeBoolean }
+        | CHARACTER_TYPE { addValue(&($1),typeCharchter);$$ = typeCharchter }
         | STRING_TYPE { $$ = typeString }
         ;
 
@@ -133,14 +133,15 @@ expression_or_assignment : expression_statement
                            | assignment_statement 
 
 
-declaration_or_assignment_or_expression : expression_or_assignment
+declaration_or_assignment_or_expression : expression_or_assignment 
                                         | declaration_statement 
 
 declaration_statement: data_type IDENTIFIER 
         {
-                if(inTable((char*)$2) != -1)
-                        yyerror("this variable has been declared before");
-                addToSymbolTable((char*)($2),$1,identifierKind);
+                printf("new\n");
+			if(inTable((char*)$2) != -1)
+					yyerror("this variable has been declared before");
+			addToSymbolTable((char*)($2),$1,identifierKind);
         }
         | data_type IDENTIFIER ASSIGNMENT expression_statement
         {
@@ -148,6 +149,12 @@ declaration_statement: data_type IDENTIFIER
                         yyerror("this variable has been declared before");
                 checkType($1,$4); 
                 addToSymbolTable((char*)($2),$1,identifierKind);
+                if(values[valueIdx].type != -1)
+                        opr('=', 2, (char*)($2), "$");
+                else {
+                        opr('=', 2, (char*)($2), values[valueIdx]);
+                        valueIdx ++;
+                }
         }
         | CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement        
         {
@@ -174,24 +181,24 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                                                 int type = getType(i);
                                                 scope = temp;
                                                 $$ = checkType(type,$3);
-												if(values[valueIdx].type != -1)
-													opr('=', 2, (char*)($1), "$");
-												else {
-													opr('=', 2, (char*)($1), values[valueIdx]);
-													valueIdx ++;
-												}
+                                                if(values[valueIdx].type != -1)
+                                                        opr('=', 2, (char*)($1), "$");
+                                                else {
+                                                        opr('=', 2, (char*)($1), values[valueIdx]);
+                                                }
+                                                valueIdx ++;
                                         }
                                 }
                                 else{
                                         checkKind(getKind(i));
                                         int type = getType(i);
                                         $$ = checkType(type,$3);
-										if(values[valueIdx].type != -1)
-											opr('=', 2, (char*)($1), "$");
-										else {
-											opr('=', 2, (char*)($1), values[valueIdx].name);
-											valueIdx ++;
-										}
+                                        if(values[valueIdx].type != -1)
+                                                opr('=', 2, (char*)($1), "$");
+                                        else {
+                                                opr('=', 2, (char*)($1), values[valueIdx].name);
+                                                valueIdx ++;
+                                        }
                                 }
                         }
                       |IDENTIFIER ASSIGNMENT assignment_statement 
@@ -248,14 +255,12 @@ factor :  data_value { $$ = $1 ; }
                                 setUsed(i);
                                 $$ = getType(i);
                                 scope = temp;
-								printf("identifier\n");
 								addValue((char*)$1,-1);
                         }
                 }
                 else{
                         setUsed(i);
                         $$ = getType(i); 
-						printf("identifier\n");
 						addValue((char*)$1,-1);
                 }
         }
@@ -370,7 +375,6 @@ void addValue(void* value , int type)
 {
 	struct valueNodes p;
 	p.type = type;
-	printf("add value %d", *((int *)value));
 	if (type == typeInteger)
 		p.integer = *((int *)value);
 	else if (type == typeFloat)
@@ -449,42 +453,46 @@ void opr(int oper, int nops, ...) {
 		char* n[nops];
         va_start(ap, nops); 
         for (int i = 0; i < nops; i++){
-			n[i]= va_arg(ap, char*);
-			printf("%s\n",n[i]);
-			if(n[i]=="$"){
-				struct nodeTypeTag p1;
-				p1.kind = constantValueKind;
-				p1.type = values[valueIdx].type;
-				if (p1.type == typeInteger)
-					p1.value = &(values[valueIdx].integer);
-				else if (p1.type == typeFloat)
-					p1.value = &(values[valueIdx].integer);
-				else if (p1.type == typeBoolean)
-					p1.value = &(values[valueIdx].integer);
-				else if (p1.type == typeCharchter)
-					p1.value = &(values[valueIdx].integer);
-				p.opr.op[i] = &p1;
-				valueIdx ++;
-			}
-			else{
-				int place = inTable(n[i]);
-				if(place == -1){
-					int temp = scope;
-					scope = 0 ;
-					place = inTable(n[i]);
-					if(place == -1)
-						yyerror("variable used before declaration") ; 
-					else{
-						scope = temp;
-						p.opr.op[i] = &symbol_table[place];
-					}
-				}
-				else{
-					p.opr.op[i] = &symbol_table[place];
-				}
-			}
+                n[i]= va_arg(ap, char*);
+                if(!strcmp(n[i],"$")){
+					struct nodeTypeTag *p1;
+					size_t nodeSize; 
+					/* allocate node */ 
+					nodeSize =  10 + sizeof(oprNodeType); 
+					if ((p1 = malloc(nodeSize)) == NULL) 
+					yyerror("out of memory");
+					p1->kind = constantValueKind;
+					p1->type = values[valueIdx].type;
+					if (p1->type == typeInteger)
+							p1->value = &(values[valueIdx].integer);
+					// else if (p1.type == typeFloat)
+					// 		p1.value = &(values[valueIdx].integer);
+					// else if (p1.type == typeBoolean)
+					// 		p1.value = &(values[valueIdx].integer);
+					// else if (p1.type == typeCharchter)
+					// 		p1.value = &(values[valueIdx].integer);
+					p.opr.op[i] = p1;
+					valueIdx ++;
+                }
+                else{
+                        int place = inTable(n[i]);
+                        if(place == -1){
+                                int temp = scope;
+                                scope = 0 ;
+                                place = inTable(n[i]);
+                                if(place == -1)
+                                        yyerror("variable used before declaration") ; 
+                                else{
+                                        scope = temp;
+                                        p.opr.op[i] = &symbol_table[place];
+                                }
+                        }
+                        else{
+                                p.opr.op[i] = &symbol_table[place];
+                        }
+                }
 	} 
-	printf("%s\n",p.opr.op[1]->name);
+	
         va_end(ap);
         symbol_table[idx++] = p;
 } 
@@ -527,8 +535,6 @@ int main(void) {
 	printf("start\n");
     yyparse();
 	printf("end\n");
-	for (int i = 0 ; i < valueIdxInsert;i++)
-		printf("value: %d\n",values[i].integer);
     for (int i=0;i<idx;i++){
 		if(symbol_table[i].kind == 4)
 		{

@@ -8,7 +8,7 @@ if (true)
 {
     int z;
 };
-g = 3;
+g = 6;
 int y = 4;
 int z;
 if (bool qwewr = true){
@@ -27,5 +27,5 @@ int func(int x){
     return 0;
 }
 
-int x1 = 1;
-int x2 = 2 * - x1;
+//int x1 = 1;
+//int x2 = 2 * - x1;
