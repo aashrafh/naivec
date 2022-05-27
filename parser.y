@@ -139,13 +139,14 @@ declaration_or_assignment_or_expression : expression_or_assignment
 
 declaration_statement: data_type IDENTIFIER 
 	{
-		printf("new\n");
+		printf("\n");
 		if(inTable((char*)$2) != -1)
 				yyerror("this variable has been declared before");
 		addToSymbolTable((char*)($2),$1,identifierKind);
 	}
 	| data_type IDENTIFIER ASSIGNMENT expression_statement
 	{
+		printf("\n");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		checkType($1,$4); 
@@ -555,12 +556,12 @@ void opr(int oper, int nops, ...) {
 					p1->type = values[valueIdx].type;
 					if (p1->type == typeInteger)
 							p1->value = &(values[valueIdx].integer);
-					// else if (p1.type == typeFloat)
-					// 		p1.value = &(values[valueIdx].integer);
-					// else if (p1.type == typeBoolean)
-					// 		p1.value = &(values[valueIdx].integer);
-					// else if (p1.type == typeCharchter)
-					// 		p1.value = &(values[valueIdx].integer);
+					else if (p1->type == typeFloat)
+							p1->value = &(values[valueIdx].floatNumber);
+					else if (p1->type == typeBoolean)
+							p1->value = &(values[valueIdx].boolean);
+					else if (p1->type == typeCharchter)
+							p1->value = &(values[valueIdx].character);
 					p.opr.op[i] = p1;
 					valueIdx ++;
 		}
@@ -584,8 +585,6 @@ void opr(int oper, int nops, ...) {
 	} 
 	
 	va_end(ap);
-	printf("kind 1 : %d\n",(p.opr.op[0]->kind));
-	printf("kind 2 : %d\n",(p.opr.op[1]->kind));
 	symbol_table[idx++] = p;
 } 
 //----------------------------------------------
