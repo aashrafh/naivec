@@ -5,3 +5,6 @@ y = x;
 int z = 1351;
 bool w = !1 && true && false || true;
 w = true || true && true || !false;
+while(1 || 2){
+    x = 2 + 1;
+}

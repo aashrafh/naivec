@@ -337,8 +337,8 @@ nested_else_statement : ELSE loops_statement
 	       | ELSE loop_block_statement
 	       | SEMICOLON
 
-while_statement: WHILE  '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loop_block_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
-	| WHILE  '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loops_statement  {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+while_statement: WHILE  '(' logical_expression ')' {par = 2 ;symbol_table[idx] = symbol_table[idx - 1];idx --;opr('w',0);idx ++;opr('h',0);scope = scope_inc;} loop_block_statement {opr('l',0);$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+	| WHILE  '(' logical_expression ')' {scope = scope_inc;} loops_statement  {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
 	;
     
 for_statement: for_declaration  loop_block_statement
@@ -536,6 +536,7 @@ static int lbl;
 static int var;
 int known = 0; 
 int operation = 0;
+int wh = 0;
 int ex(nodeType *p) { 
 	int lbl1, lbl2;  
 	switch(p->kind) {
@@ -568,6 +569,19 @@ int ex(nodeType *p) {
 			break; 
 		case 4:
 			switch(p->opr.oper){
+				case 'w':
+					wh = 1;
+					printf("L%03d:\n", lbl1 = lbl++);
+					break; 
+				case 'h':
+					wh = 0;
+					//printf("\tpush\tt%d\n", var);	 
+					printf("\tjz\tL%03d\n", lbl2 = lbl++); 
+					break; 
+				case 'l':
+					printf("\tjmp\tL%03d\n", lbl1); 
+					printf("L%03d:\n", lbl2); 
+					break; 
 				case '=':
 					if(p->opr.nops > 1){
 						ex(p->opr.op[1]);
@@ -599,9 +613,24 @@ int ex(nodeType *p) {
 					case '-': printf("\tsub\tt%d\n",var); break; 
 					case '*': printf("\tmul\tt%d\n",var); break; 
 					case '/': printf("\tdiv\tt%d\n",var); break;
-					case '!': printf("\tnot\tt%d\n",var); break; 
-					case '&': printf("\tand\tt%d\n",var); break; 
-					case '|': printf("\tor\tt%d\n",var); break; 
+					case '!':  
+						if (wh == 1)
+							printf("\not\t\n");
+						else 
+							printf("\tnot\tt%d\n",var); 
+						break;  
+					case '&': 
+						if (wh == 1)
+							printf("\tand\t\n"); 
+						else
+							printf("\tand\tt%d\n",var); 
+						break; 
+					case '|':  
+						if (wh == 1)
+							printf("\tor\t\n"); 
+						else
+							printf("\tor\tt%d\n",var); 
+						break;  
 					case '<': printf("\tcompLT\n"); break; 
 					case '>': printf("\tcompGT\n"); break; 
 					// case "GE": printf("\tcompGE\n"); break; 
