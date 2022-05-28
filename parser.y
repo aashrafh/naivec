@@ -67,8 +67,7 @@
 
 /* precedence and associativity rules */
 
-%left AND 
-%left OR
+%left AND OR
 %left EQUAL 
 %left NOT_EQUAL 
 %left GREATER_THAN 
@@ -275,9 +274,38 @@ factor :  data_value { $$ = $1 ; }
 	 | '(' expression_statement ')'{$$ = $2;}
 	 | { $$ = -1; }
 	 
-logical_expression:  NOT expression_statement { $$ = $1; }
-	| expression_statement AND expression_statement { checkType($1,$3);  $$ = typeBoolean;}
-	| expression_statement OR expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+logical_expression:  NOT expression_statement 
+{
+	mulDivLvl = 0;
+	int temp = valueIdx;
+	par = 1;
+	valueIdx = valueIdxInsert - par;
+	addToOperation('!',"$","$");
+	valueIdx = temp;
+	$$ = typeBoolean; 
+}
+	| expression_statement AND expression_statement 
+	{ 
+		mulDivLvl = 0;
+		int temp = valueIdx;
+		valueIdx = valueIdxInsert - par;
+		addToOperation('&',"$","$");
+		valueIdx = temp;
+		checkType($1,$3); 
+		par = 1; 
+		$$ = typeBoolean;
+	}
+	| expression_statement OR expression_statement 
+	{ 
+		mulDivLvl = 0;
+		int temp = valueIdx;
+		valueIdx = valueIdxInsert - par;
+		addToOperation('|',"$","$");
+		valueIdx = temp;
+		checkType($1,$3); 
+		par = 1; 
+		$$ = typeBoolean;
+	}
 	| expression_statement GREATER_THAN expression_statement { checkType($1,$3);  $$ = typeBoolean;}
 	| expression_statement LESS_THAN expression_statement { checkType($1,$3);  $$ = typeBoolean;}
 	| expression_statement GREATER_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
@@ -557,7 +585,7 @@ int ex(nodeType *p) {
 						ex(p->opr.op[1]);
 						var ++;	
 					} 
-					else if(p->opr.nops == 1){
+					else if(p->opr.nops == 1 && p->opr.oper != '!'){
 						if(known == 0){
 							var -= 1;
 							printf("\tpush\tt%d\n",var++ );
@@ -571,8 +599,9 @@ int ex(nodeType *p) {
 					case '-': printf("\tsub\tt%d\n",var); break; 
 					case '*': printf("\tmul\tt%d\n",var); break; 
 					case '/': printf("\tdiv\tt%d\n",var); break;
-					case '&': printf("\tand\t"); break; 
-					case '|': printf("\tor\t"); break; 
+					case '!': printf("\tnot\tt%d\n",var); break; 
+					case '&': printf("\tand\tt%d\n",var); break; 
+					case '|': printf("\tor\tt%d\n",var); break; 
 					case '<': printf("\tcompLT\n"); break; 
 					case '>': printf("\tcompGT\n"); break; 
 					// case "GE": printf("\tcompGE\n"); break; 

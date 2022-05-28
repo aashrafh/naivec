@@ -1,5 +1,7 @@
 int x = 3;
 int y = 3;
-//x = y + x + x - 45 * 90 * 125 + 100 - 123 / 2;
+x = y + x + x - 45 * 90 * 125 + 100 - 123 / 2;
 y = x;
 int z = 1351;
+bool w = !1 && true && false || true;
+w = true || true && true || !false;
