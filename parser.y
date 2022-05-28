@@ -23,20 +23,21 @@
     int checkType(int x , int y);
     int checkKind (int kind);
     void setUsed(int i);
+	int Operations (char operation,int par1, int par2,int setPar, int setMulLvl);
     void opr(int oper, int nops, ...);
     int ex(struct nodeTypeTag *p) ; 
     int scope = 0;
     int scope_inc = 1;
-        int idx = 0 ;
-        struct nodeTypeTag symbol_table[10000];
-        struct valueNodes values[10000];
-        int valueIdxInsert = 0;
-        int valueIdx = 0; 
-        int par = 2;
-        int addSubLvl = 0;
-        int mulDivLvl = 0;
-        void addValue(void* value , int type);
-        void addToOperation (char operation, char* par1, char* par2);
+	int idx = 0 ;
+	struct nodeTypeTag symbol_table[10000];
+	struct valueNodes values[10000];
+	int valueIdxInsert = 0;
+	int valueIdx = 0; 
+	int par = 2;
+	int addSubLvl = 0;
+	int mulDivLvl = 0;
+	void addValue(void* value , int type);
+	void addToOperation (char operation, char* par1, char* par2);    
 %}
 
 
@@ -143,35 +144,35 @@ declaration_statement: data_type IDENTIFIER
 	{
 		printf("\n");
 		if(inTable((char*)$2) != -1)
-                        yyerror("this variable has been declared before");
+			yyerror("this variable has been declared before");
 		addToSymbolTable((char*)($2),$1,identifierKind);
 	}
 	| data_type IDENTIFIER ASSIGNMENT expression_statement
 	{
-                valueIdx = valueIdxInsert - 1;
-                printf("\n");
+		valueIdx = valueIdxInsert - 1;
+		printf("\n");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		checkType($1,$4); 
 		addToSymbolTable((char*)($2),$1,identifierKind);
-                addToOperation('=', (char*)($2), "$");
-                par = 2;
+		addToOperation('=', (char*)($2), "$");
+		par = 2;
 	}
 	| CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement        
 	{
-                valueIdx = valueIdxInsert - 1;
+		valueIdx = valueIdxInsert - 1;
 		if(inTable((char*)$3) != -1)
 			yyerror("this variable has been declared before");
 		checkType($2,$5); 
 		addToSymbolTable((char*)($3),$2,constantKind);
-                addToOperation('=', (char*)($3), "$");
-                par = 2;
+		addToOperation('=', (char*)($3), "$");
+		par = 2;
 	}
 	;
 
 assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
 			{
-		                valueIdx = valueIdxInsert - 1;
+				valueIdx = valueIdxInsert - 1;
 				int i = inTable((char*)($1));
 				if (i == -1)
 				{
@@ -204,47 +205,12 @@ expression_statement: math_expression { $$ = $1; }
 	| function_call  { $$ = $1;}
 	;
 
-math_expression:  expression_statement '+' term 
-	{
-		mulDivLvl = 0;
-                int temp = valueIdx;
-		valueIdx = valueIdxInsert - par;
-                addToOperation('+',"$","$");
-                valueIdx = temp;
-                par = 1;
-		$$ = checkType($1,$3); 
-	}  
-	| expression_statement '-' term 
-	{ 
-                mulDivLvl = 0;
-                int temp = valueIdx;
-		valueIdx = valueIdxInsert - par;
-                addToOperation('-',"$","$");
-                valueIdx = temp;
-                par = 1;
-		$$ = checkType($1,$3); 
-	}  
+math_expression:  expression_statement '+' term { $$ = Operations('+',(int)$1,(int)$3,1,0); }  
+	| expression_statement '-' term { $$ = Operations('-',(int)$1,(int)$3,1,0); } 
 	| term
 	;
-term :    term '*' factor 
-{
-	int temp = valueIdx;
-	valueIdx = valueIdxInsert - par;
-        addToOperation('*',"$","$");
-	par = 1;
-	mulDivLvl = 1;
-	valueIdx = temp;
-	$$ = checkType($1,$3); 
-}  
-	| term '/' factor  
-{ 
-	int temp = valueIdx;
-	valueIdx = valueIdxInsert - par;
-        addToOperation('/',"$","$");
-	mulDivLvl = 1;
-	valueIdx = temp;
-	$$ = checkType($1,$3); 
-} 
+term :    term '*' factor { $$ = Operations('*',(int)$1,(int)$3,1,1); }  
+	| term '/' factor  { $$ = Operations('/',(int)$1,(int)$3,1,1); }  
 	| factor { $$ = $1; }
 
 factor :  data_value { $$ = $1 ; }
@@ -274,44 +240,15 @@ factor :  data_value { $$ = $1 ; }
 	}
 	 | { $$ = -1; }
 	 
-logical_expression:  NOT expression_statement 
-{
-	mulDivLvl = 0;
-	int temp = valueIdx;
-	par = 1;
-	valueIdx = valueIdxInsert - par;
-	addToOperation('!',"$","$");
-	valueIdx = temp;
-	$$ = typeBoolean; 
-}
-	| expression_statement AND expression_statement 
-	{ 
-		mulDivLvl = 0;
-		int temp = valueIdx;
-		valueIdx = valueIdxInsert - par;
-		addToOperation('&',"$","$");
-		valueIdx = temp;
-		checkType($1,$3); 
-		par = 1; 
-		$$ = typeBoolean;
-	}
-	| expression_statement OR expression_statement 
-	{ 
-		mulDivLvl = 0;
-		int temp = valueIdx;
-		valueIdx = valueIdxInsert - par;
-		addToOperation('|',"$","$");
-		valueIdx = temp;
-		checkType($1,$3); 
-		par = 1; 
-		$$ = typeBoolean;
-	}
-	| expression_statement GREATER_THAN expression_statement { checkType($1,$3);  $$ = typeBoolean;}
-	| expression_statement LESS_THAN expression_statement { checkType($1,$3);  $$ = typeBoolean;}
-	| expression_statement GREATER_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
-	| expression_statement LESS_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
-	| expression_statement EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
-	| expression_statement NOT_EQUAL expression_statement { checkType($1,$3);  $$ = typeBoolean;}
+logical_expression:  NOT expression_statement {	par = 1; Operations ('!',1,1,0,0); $$ = typeBoolean; }
+	| expression_statement AND expression_statement {	Operations('&',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement OR expression_statement {	Operations('|',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement GREATER_THAN expression_statement {	Operations('>',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement LESS_THAN expression_statement {	Operations('<',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement GREATER_EQUAL expression_statement {	Operations('G',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement LESS_EQUAL expression_statement {	Operations('L',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement EQUAL expression_statement {	Operations('E',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
+	| expression_statement NOT_EQUAL expression_statement {	Operations('N',(int)$1,(int)$3,1,0);	$$ = typeBoolean; }
 	;
 
 block_statement :  '{''}'  
@@ -342,12 +279,13 @@ while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = chec
 	;
 while_declaraction : WHILE '(' {opr('w',0); scope = scope_inc; par = 2;}  logical_expression ')' {par = 2 ;opr('h',0); $$ = $4;}
 	;    
-for_statement: for_declaration  loop_block_statement
-	| for_declaration loops_statement
+for_statement: for_declaration  loop_block_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
+	| for_declaration loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	;
 
-for_declaration: FOR {scope = scope_inc;}'(' declaration_or_assignment_or_expression SEMICOLON declaration_or_assignment_or_expression SEMICOLON expression_or_assignment ')'
-			{ checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
+for_declaration: FOR {scope = scope_inc;par = 2;}'(' declaration_or_assignment_or_expression {opr('w',0);par = 2;} SEMICOLON declaration_or_assignment_or_expression {par = 2 ;opr('h',0);} SEMICOLON expression_or_assignment ')'
+				{$$ = $7;}
+			
 
 
 do_while_statement : DO {scope = scope_inc;} loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
@@ -652,23 +590,33 @@ int ex(nodeType *p) {
 						var += inc;
 						printf("\tnot\tt%d\n",var); 
 						break;  
-					case '&': 
-						printf("\tand\tt%d\n",var); 
-						break; 
-					case '|':  
-						printf("\tor\tt%d\n",var); 
-						break;  
-					case '<': printf("\tcompLT\n"); break; 
-					case '>': printf("\tcompGT\n"); break; 
-					// case "GE": printf("\tcompGE\n"); break; 
-					// case "LE": printf("\tcompLE\n"); break; 
-					// case "NE": printf("\tcompNE\n"); break; 
-					// case "EQ": printf("\tcompEQ\n"); break; 
+					case '&': printf("\tand\tt%d\n",var); break; 
+					case '|':  printf("\tor\tt%d\n",var); break;  
+					case '<': printf("\tcompLT\tt%d\n",var); break; 
+					case '>': printf("\tcompGT\tt%d\n",var); break; 
+					case 'G': printf("\tcompGE\tt%d\n",var); break; 
+					case 'L': printf("\tcompLE\tt%d\n",var); break; 
+					case 'N': printf("\tcompNE\tt%d\n",var); break; 
+					case 'E': printf("\tcompEQ\tt%d\n",var); break; 
 					} 
 				}
 		} 
 	return 0; 
 }  
+int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
+{
+	if (!setMulLvl)
+		mulDivLvl = 0;
+	int temp = valueIdx;
+	valueIdx = valueIdxInsert - par;
+	addToOperation(operation,"$","$");
+	valueIdx = temp;
+	if (setMulLvl)
+		mulDivLvl = 1;
+	if (setPar)
+		par = 1;
+	return checkType(par1,par2); 
+}
 void addToOperation (char operation, char* par1, char* par2)
 {
         int parameter2;
