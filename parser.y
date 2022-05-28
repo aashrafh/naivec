@@ -200,6 +200,7 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
 
 expression_statement: math_expression { $$ = $1; }
 	| logical_expression  {$$ = $1;}
+	| '(' expression_statement ')'{par = 2;$$ = $2;}
 	| function_call  { $$ = $1;}
 	;
 
@@ -262,7 +263,7 @@ factor :  data_value { $$ = $1 ; }
 				setUsed(i);
 				$$ = getType(i);
 				scope = temp;
-                                addValue((char*)$1,-1);
+                addValue((char*)$1,-1);
 			}
 		}
 		else{
@@ -271,7 +272,6 @@ factor :  data_value { $$ = $1 ; }
                         addValue((char*)$1,-1);
 		}
 	}
-	 | '(' expression_statement ')'{$$ = $2;}
 	 | { $$ = -1; }
 	 
 logical_expression:  NOT expression_statement 
@@ -337,10 +337,11 @@ nested_else_statement : ELSE loops_statement
 	       | ELSE loop_block_statement
 	       | SEMICOLON
 
-while_statement: WHILE  '(' logical_expression ')' {par = 2 ;symbol_table[idx] = symbol_table[idx - 1];idx --;opr('w',0);idx ++;opr('h',0);scope = scope_inc;} loop_block_statement {opr('l',0);$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
-	| WHILE  '(' logical_expression ')' {scope = scope_inc;} loops_statement  {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
+	| while_declaraction loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	;
-    
+while_declaraction : WHILE '(' {opr('w',0); scope = scope_inc; par = 2;}  logical_expression ')' {par = 2 ;opr('h',0); $$ = $4;}
+	;    
 for_statement: for_declaration  loop_block_statement
 	| for_declaration loops_statement
 	;
@@ -486,8 +487,10 @@ void opr(int oper, int nops, ...) {
 	va_start(ap, nops); 
 	for (int i = 0; i < nops; i++){
 		n[i]= va_arg(ap, char*);
+		if (!strcmp(n[i],"#"))
+			continue;
 		if(!strcmp(n[i],"$")){
-			while(values[valueIdx].used == 1){
+			while(values[valueIdx].used == 1 ){
 				valueIdx ++;
 			}
 			values[valueIdx].used = 1;
@@ -536,9 +539,11 @@ static int lbl;
 static int var;
 int known = 0; 
 int operation = 0;
-int wh = 0;
+int arthLvl = -1;
+int sec = 0;
 int ex(nodeType *p) { 
-	int lbl1, lbl2;  
+	int lbl1, lbl2;
+	int inc = 1;  
 	switch(p->kind) {
 		case constantValueKind:
 			if (p->type == typeInteger){
@@ -570,15 +575,15 @@ int ex(nodeType *p) {
 		case 4:
 			switch(p->opr.oper){
 				case 'w':
-					wh = 1;
 					printf("L%03d:\n", lbl1 = lbl++);
 					break; 
 				case 'h':
-					wh = 0;
-					//printf("\tpush\tt%d\n", var);	 
+					printf("\tpush\tt%d\n", var);	 
 					printf("\tjz\tL%03d\n", lbl2 = lbl++); 
 					break; 
 				case 'l':
+					var = 0;
+					arthLvl = -1;
 					printf("\tjmp\tL%03d\n", lbl1); 
 					printf("L%03d:\n", lbl2); 
 					break; 
@@ -590,46 +595,68 @@ int ex(nodeType *p) {
 						printf("\tpush\tt%d\n", var);	 
 					printf("\tpop\t%s\n", p->opr.op[0]->name);
 					var = 0; 
+					arthLvl = -1;
 					operation = 0;
 					break; 
-				default: 
+				default:
+					if (arthLvl == -1)
+						inc = 1;
+					// if (p->opr.oper == '!')
+					// 	inc = 1;
+					if (((p->opr.oper == '*' || p->opr.oper == '/')&& arthLvl == 1))
+						inc = 0;
+					if (((p->opr.oper == '+' || p->opr.oper == '-')&& arthLvl == 0)){
+						inc = 0;	 
+					}
 					operation = 1;
-					ex(p->opr.op[0]);
-					if(p->opr.nops > 1){
-						ex(p->opr.op[1]);
-						var ++;	
-					} 
-					else if(p->opr.nops == 1 && p->opr.oper != '!'){
-						if(known == 0){
-							var -= 1;
-							printf("\tpush\tt%d\n",var++ );
-							printf("\tpush\tt%d\n",var++ );
+					if (p->opr.nops == 0){
+						var -= 1;
+						printf("\tpush\tt%d\n",var++ );
+						printf("\tpush\tt%d\n",var );
+						var += inc;
+					}
+					else{
+						if(p->opr.nops > 1){
+							ex(p->opr.op[0]);
+							ex(p->opr.op[1]);
+							if (known != 1){
+								var -= 1;
+								printf("\tpush\tt%d\n",var++ );
+								printf("\tpush\tt%d\n",var );
+								var += inc;
+							}
+							else{
+								var += inc;
+							}
+						} 
+						else if(p->opr.nops == 1 && p->opr.oper != '!'){
+							printf("\tpush\tt%d\n",var);
+							ex(p->opr.op[0]);
+							if(known == 0){
+								printf("\tpush\tt%d\n",var-1 );
+								var += inc;
+							}
+							else
+								var += inc;
 						}
-						else
-							printf("\tpush\tt%d\n",var++ );
 					}
 					switch(p->opr.oper) { 
-					case '+': printf("\tadd\tt%d\n",var); break; 
-					case '-': printf("\tsub\tt%d\n",var); break; 
-					case '*': printf("\tmul\tt%d\n",var); break; 
-					case '/': printf("\tdiv\tt%d\n",var); break;
-					case '!':  
-						if (wh == 1)
-							printf("\not\t\n");
-						else 
-							printf("\tnot\tt%d\n",var); 
+					case '+': printf("\tadd\tt%d\n",var); arthLvl = 0 ;break; 
+					case '-': printf("\tsub\tt%d\n",var); arthLvl = 0 ; break; 
+					case '*': printf("\tmul\tt%d\n",var); arthLvl = 1 ;break; 
+					case '/': printf("\tdiv\tt%d\n",var); arthLvl = 1 ;break;
+					case '!':
+						ex(p->opr.op[0]);
+						if (known != 1) 
+							printf("\tpush\tt%d\n",var); 
+						var += inc;
+						printf("\tnot\tt%d\n",var); 
 						break;  
 					case '&': 
-						if (wh == 1)
-							printf("\tand\t\n"); 
-						else
-							printf("\tand\tt%d\n",var); 
+						printf("\tand\tt%d\n",var); 
 						break; 
 					case '|':  
-						if (wh == 1)
-							printf("\tor\t\n"); 
-						else
-							printf("\tor\tt%d\n",var); 
+						printf("\tor\tt%d\n",var); 
 						break;  
 					case '<': printf("\tcompLT\n"); break; 
 					case '>': printf("\tcompGT\n"); break; 
@@ -661,23 +688,49 @@ void addToOperation (char operation, char* par1, char* par2)
                 equalIndex = 0;
 
         if(values[valueIdx].type != -1 && parameter2 != -1){
-                printf("operation1\n");
+				printf("=op1\n");
                 opr(operation, par, par1, par2);
         }
-        else if (values[valueIdx].type != -1 || (par == 2 && operation == '=')) {
-                printf("operation2\n");
-                opr(operation, par, par1, values[valueIdx + equalIndex].name);
-                values[valueIdx + equalIndex].used = 1;
-                valueIdx ++;
+        else if (values[valueIdx].type != -1 || (operation == '=')) {
+			printf("=op2\n");
+			if (values[valueIdx + equalIndex].used == 1)
+				opr(operation, par, par1, "#");
+			else{
+				values[valueIdx + equalIndex].used = 1;
+				opr(operation, par, par1, values[valueIdx + equalIndex].name);
+			} 	
+			valueIdx ++;
         }
         else if (parameter2 != -1){
-                printf("operation3\n");
+			printf("=op3\n");
                 valueIdx ++;
-                opr(operation, par, values[valueIdx-1].name, par2); 
-                values[valueIdx-1].used = 1;
+				if ( values[valueIdx-1].used == 1){
+					opr(operation, par,  par2, "#"); 	
+				}
+                else{
+					values[valueIdx-1].used = 1;
+					opr(operation, par, values[valueIdx-1].name, par2); 
+				}
         }
         else{
-                opr(operation, par, values[valueIdx].name, values[valueIdx+1].name);
+			printf("=op4\n");
+				if (values[valueIdx].used == 1 && values[valueIdx+1].used == 1)
+					opr(operation, 0, "#", "#");
+				else if (values[valueIdx].used == 1)
+				{
+					values[valueIdx+1].used = 1;
+					opr(operation, par,  values[valueIdx+1].name , "#");
+				}
+				else if (values[valueIdx+1].used == 1)
+				{
+					values[valueIdx].used = 1;
+					opr(operation, par, values[valueIdx].name, "#");
+				} 	
+				else{
+					values[valueIdx].used = 1;
+					values[valueIdx+1].used = 1;
+					opr(operation, par, values[valueIdx].name, values[valueIdx+1].name);
+				}
                 valueIdx += 2;
         }
 }
@@ -685,6 +738,7 @@ void addToOperation (char operation, char* par1, char* par2)
 int main(void) {
     yyparse();
     printf("finished parsing\n");
+	printf("%d\n",valueIdxInsert-1);
     for (int i=0;i<idx;i++){
 		if(symbol_table[i].kind == 4)
 		{

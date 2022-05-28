@@ -1,1 +1,5 @@
-bool x = true;
+int x = 1;
+int y = 2;
+int z = 1;
+int a = 1;
+bool w = (x || a) && (y || z);
