@@ -149,32 +149,30 @@ declaration_statement: data_type IDENTIFIER
 	}
 	| data_type IDENTIFIER ASSIGNMENT expression_statement
 	{
-                valueIdx = valueIdxInsert - par;
+                valueIdx = valueIdxInsert - 1;
                 printf("\n");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		checkType($1,$4); 
 		addToSymbolTable((char*)($2),$1,identifierKind);
                 addToOperation('=', (char*)($2), "$");
-                valueIdx = valueIdxInsert - 1;
                 par = 2;
 	}
 	| CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement        
 	{
-                valueIdx = valueIdxInsert - par;
+                valueIdx = valueIdxInsert - 1;
 		if(inTable((char*)$3) != -1)
 			yyerror("this variable has been declared before");
 		checkType($2,$5); 
 		addToSymbolTable((char*)($3),$2,constantKind);
                 addToOperation('=', (char*)($3), "$");
-                valueIdx = valueIdxInsert - 1;
                 par = 2;
 	}
 	;
 
 assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
 			{
-		                valueIdx = valueIdxInsert - par;
+		                valueIdx = valueIdxInsert - 1;
 				int i = inTable((char*)($1));
 				if (i == -1)
 				{
@@ -199,7 +197,6 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
                                         addToOperation('=', (char*)($1), "$");
 				}
                                 par = 2;
-                                valueIdx = valueIdxInsert - 1;
 			}
 
 expression_statement: math_expression { $$ = $1; }
@@ -601,15 +598,18 @@ void addToOperation (char operation, char* par1, char* par2)
         }
         if (par == 2)
                 parameter2 = values[valueIdx + 1].type;
+        int equalIndex = 1;
+        if (operation == '=')
+                equalIndex = 0;
 
         if(values[valueIdx].type != -1 && parameter2 != -1){
                 printf("operation1\n");
                 opr(operation, par, par1, par2);
         }
-        else if (values[valueIdx].type != -1) {
+        else if (values[valueIdx].type != -1 || (par == 2 && operation == '=')) {
                 printf("operation2\n");
-                opr(operation, par, par1, values[valueIdx + 1].name);
-                values[valueIdx + 1].used = 1;
+                opr(operation, par, par1, values[valueIdx + equalIndex].name);
+                values[valueIdx + equalIndex].used = 1;
                 valueIdx ++;
         }
         else if (parameter2 != -1){
