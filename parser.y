@@ -313,15 +313,17 @@ do_while_declaration : WHILE {opr('x',0);}'('  declaration_or_assignment_or_expr
     }
 	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($4,typeBoolean);
 	}
-switch_statement : SWITCH {scope = scope_inc;}'('declaration_or_assignment_or_expression')' '{' case_statement '}' 
+switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaration_or_assignment_or_expression')' {if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){par = 1;Operations('#',1,1,0,0);} par = 2;}'{' case_statement '}' 
 {
 	if ($$ != -1)
-	$$ = checkType($4,$7); 
+	$$ = checkType($4,$8); 
 	scope = 0; scope_inc += 1;
+	opr('C',0);
+	par = 2;
 }
 
-case_statement : CASE expression_or_assignment COLON loops_statements case_statement { $$ = $2;}
-		| DEFAULT COLON loops_statements { $$ = -1;}
+case_statement : CASE {par = 2; scope = scope_inc;} expression_or_assignment {par = 1;Operations('A',0,0,0,0); par = 2;} COLON loops_statements {opr('B',0); opr('i',0);}case_statement { par = 2;$$ = $3; scope_inc ++; scope = 0;}
+		| DEFAULT {scope = scope_inc;} COLON loops_statements { scope_inc ++; scope = 0; $$ = -1;}
 		| { $$ = -1;}
 		;
 
@@ -499,6 +501,7 @@ void opr(int oper, int nops, ...) {
 //----------------------------------------------
 static int lbl;
 static int var;
+static int sCase;
 int known = 0; 
 int operation = 0;
 int arthLvl = -1;
@@ -536,6 +539,25 @@ int ex(nodeType *p) {
 			break; 
 		case 4:
 			switch(p->opr.oper){
+				case '#':
+					ex(p->opr.op[0]); 
+					printf("\tpop\tr\n");
+					break;
+				case 'A':
+					printf("\tpush\tr\n");
+					ex(p->opr.op[0]);
+					if(known < 1)
+						printf("\tpush\tt%d\n", var++);	
+					printf("\tcompEQ\tt%d\n",var); 
+					printf("\tpush\tt%d\n", var);
+					printf("\tjz\tL%03d\n", lbl2 = lbl++); 
+					break;
+				case 'B':
+					printf("\tjmp\tS%03d\n", sCase); 
+					break;
+				case 'C':
+					printf("S%03d:\n", sCase++);
+					break; 
 				case 'x':
 					break;
 				case 'w':

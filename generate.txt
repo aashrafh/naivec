@@ -18,3 +18,14 @@ do{
 if(w){
     int f = 1;
 };
+if(w){
+    int f = 1;
+};
+switch(w){
+    case true:
+        int asf = 1;
+    case !w:
+        asf = 1;
+    default:
+        asf = 1;
+}
