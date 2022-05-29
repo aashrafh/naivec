@@ -289,7 +289,14 @@ nested_else_statement : ELSE loops_statement
 while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	| while_declaraction loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	;
-while_declaraction : WHILE '(' {opr('w',0); scope = scope_inc; par = 2;}  logical_expression ')' {par = 2 ;opr('h',0); $$ = $4;}
+while_declaraction : WHILE '(' {opr('w',0); scope = scope_inc; par = 2;}  declaration_or_assignment_or_expression ')' 
+{
+	if(symbol_table[idx-1].kind != 4 || symbol_table[idx-1].opr.oper == 'w'){
+		par = 1;
+		Operations('@',1,1,0,0);
+	}
+	par = 2 ;
+	opr('h',0); $$ = $4;}
 	;    
 for_statement: for_declaration  loop_block_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	| for_declaration loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
@@ -537,7 +544,12 @@ int ex(nodeType *p) {
 					arthLvl = -1;
 					printf("\tjmp\tL%03d\n", lbl1); 
 					printf("L%03d:\n", lbl2); 
-					break; 
+					break;
+				case '@':
+					var = 0;
+					ex(p->opr.op[0]); 
+					printf("\tpop\tt%d\n", var);
+					break;	 
 				case '=':
 					if(p->opr.nops > 1){
 						ex(p->opr.op[1]);
@@ -698,6 +710,8 @@ void addToOperation (char operation, char* par1, char* par2)
 //------------------------------------------------
 int main(void) {
     yyparse();
+	printf("# of values %d\n", valueIdxInsert);
+	//return 0;
 	for (int i = 0 ; i < idx ; i ++){
 		if(symbol_table[i].kind == 4 && symbol_table[i].opr.oper == 'f'){
 			symbol_table[i].opr.oper = 'h';
