@@ -262,7 +262,16 @@ if_statement: if_condition block_statement else_statement {opr('i',0); $$ = chec
 	| if_condition statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	;
 
-if_condition : IF '(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' {par = 2 ;opr('h',0); $$=$4;}
+if_condition : IF {opr('x',0);}'(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' 
+{
+	if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){
+		par = 1;
+		Operations('@',1,1,0,0);
+    }
+	par = 2 ;
+	opr('h',0); 
+	$$=$5;
+}
 
 else_statement : ELSE statement
 	       | ELSE block_statement
@@ -281,7 +290,7 @@ while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = $1; 
 	;
 while_declaraction : WHILE '(' { opr('w',0); scope = scope_inc; par = 2; }  declaration_or_assignment_or_expression ')' 
 {    
-	if(symbol_table[idx-1].kind != 4 || symbol_table[idx-1].opr.oper == 'w'){
+	if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'w'){
         par = 1;
         Operations('@',1,1,0,0);
     }
@@ -297,12 +306,12 @@ for_declaration: FOR {scope = scope_inc; par = 2;}'(' declaration_or_assignment_
 do_while_statement : DO {opr('w',0); scope = scope_inc;} loops_statement do_while_declaration {scope = 0; scope_inc += 1;}
 		    | DO {opr('w',0); scope = scope_inc;} loop_block_statement do_while_declaration {scope = 0; scope_inc += 1;}
 
-do_while_declaration : WHILE '('  declaration_or_assignment_or_expression ')' {
-	if(symbol_table[idx-1].kind != 4){
+do_while_declaration : WHILE {opr('x',0);}'('  declaration_or_assignment_or_expression ')' {
+	if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){
         par = 1;
         Operations('@',1,1,0,0);
     }
-	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($3,typeBoolean);
+	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($4,typeBoolean);
 	}
 switch_statement : SWITCH {scope = scope_inc;}'('declaration_or_assignment_or_expression')' '{' case_statement '}' 
 {
@@ -483,6 +492,8 @@ void opr(int oper, int nops, ...) {
 		}
 	} 
 	va_end(ap);
+	if(p.opr.oper == '/' && ((p.opr.op[1]->type == typeInteger && *(int*)(p.opr.op[1]->value) == 0)||(p.opr.op[1]->type == typeFloat && *(float*)(p.opr.op[1]->value) == 0)))
+		yyerror("error: division by zero");
 	symbol_table[idx++] = p;
 } 
 //----------------------------------------------
@@ -525,6 +536,8 @@ int ex(nodeType *p) {
 			break; 
 		case 4:
 			switch(p->opr.oper){
+				case 'x':
+					break;
 				case 'w':
 					printf("L%03d:\n", lbl1 = lbl++);
 					break; 
