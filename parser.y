@@ -205,7 +205,19 @@ expression_statement: math_expression { $$ = $1; }
 	| function_call  { $$ = $1;}
 	;
 
-math_expression:  expression_statement '+' term { $$ = Operations('+',(int)$1,(int)$3,1,0); }  
+math_expression:  expression_statement '+' term 
+{
+	int inc = 0;
+	int temp;
+	if(mulDivLvl == 1){
+		temp = valueIdxInsert;
+		valueIdxInsert = valueIdxInsert - 1 - mulDivLvl;
+		inc = 1;
+	} 
+	$$ = Operations('+',(int)$1,(int)$3,1,0); 
+	if(inc == 1)
+		valueIdxInsert = temp;
+}  
 	| expression_statement '-' term { $$ = Operations('-',(int)$1,(int)$3,1,0); } 
 	| term
 	;
@@ -283,7 +295,7 @@ for_statement: for_declaration  loop_block_statement {opr('l',0); $$ = checkType
 	| for_declaration loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	;
 
-for_declaration: FOR {scope = scope_inc;par = 2;}'(' declaration_or_assignment_or_expression {opr('w',0);par = 2;} SEMICOLON declaration_or_assignment_or_expression {par = 2 ;opr('h',0);} SEMICOLON expression_or_assignment ')'
+for_declaration: FOR {scope = scope_inc;par = 2;}'(' declaration_or_assignment_or_expression {opr('w',0);par = 2;} SEMICOLON declaration_or_assignment_or_expression {par = 2 ;opr('f',0);} SEMICOLON expression_or_assignment ')'
 				{$$ = $7;}
 			
 
@@ -479,8 +491,8 @@ int known = 0;
 int operation = 0;
 int arthLvl = -1;
 int sec = 0;
+int lbl1, lbl2;
 int ex(nodeType *p) { 
-	int lbl1, lbl2;
 	int inc = 1;  
 	switch(p->kind) {
 		case constantValueKind:
@@ -516,6 +528,7 @@ int ex(nodeType *p) {
 					printf("L%03d:\n", lbl1 = lbl++);
 					break; 
 				case 'h':
+					operation = 0;
 					printf("\tpush\tt%d\n", var);	 
 					printf("\tjz\tL%03d\n", lbl2 = lbl++); 
 					break; 
@@ -612,7 +625,7 @@ int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
 	addToOperation(operation,"$","$");
 	valueIdx = temp;
 	if (setMulLvl)
-		mulDivLvl = 1;
+		mulDivLvl += 1;
 	if (setPar)
 		par = 1;
 	return checkType(par1,par2); 
@@ -685,14 +698,28 @@ void addToOperation (char operation, char* par1, char* par2)
 //------------------------------------------------
 int main(void) {
     yyparse();
-    printf("finished parsing\n");
-	printf("%d\n",valueIdxInsert-1);
-    for (int i=0;i<idx;i++){
-		if(symbol_table[i].kind == 4)
+	for (int i = 0 ; i < idx ; i ++){
+		if(symbol_table[i].kind == 4 && symbol_table[i].opr.oper == 'f'){
+			symbol_table[i].opr.oper = 'h';
+			ex(&(symbol_table[i]));
+			for(int j = i + 1 ; j < idx ; j++){
+				if(symbol_table[i].kind == 4 && symbol_table[j+2].opr.oper=='l'){
+					operation = 0;
+					ex(&(symbol_table[i+1]));
+					ex(&(symbol_table[i+2]));
+					i = j + 1;
+					break;	
+				}
+				else if (symbol_table[j+2].kind == 4){
+					ex(&(symbol_table[j+2]));
+				}
+			}
+		}
+		else if(symbol_table[i].kind == 4)
 		{
 			ex(&(symbol_table[i]));
 		}
-    }
+	}
     for (int i=0;i<idx;i++)
     {
 	if (symbol_table[i].isUsed == 0)
