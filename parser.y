@@ -20,7 +20,7 @@
     int inTable(char* name);
     int getType( int i);
     int getKind( int i);
-    int checkType(int x , int y);
+    int checkType(int x , int y , int errorType);
     int checkKind (int kind);
     void setUsed(int i);
 	int Operations (char operation,int par1, int par2,int setPar, int setMulLvl);
@@ -37,7 +37,8 @@
 	int addSubLvl = 0;
 	int mulDivLvl = 0;
 	void addValue(void* value , int type);
-	void addToOperation (char operation, char* par1, char* par2);    
+	void addToOperation (char operation, char* par1, char* par2); 
+	int ext = 0;   
 %}
 
 
@@ -153,7 +154,7 @@ declaration_statement: data_type IDENTIFIER
 		printf("\t");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
-		checkType($1,$4); 
+		checkType($1,$4,1); 
 		addToSymbolTable((char*)($2),$1,identifierKind);
 		addToOperation('=', (char*)($2), "$");
 		par = 2;
@@ -163,7 +164,7 @@ declaration_statement: data_type IDENTIFIER
 		valueIdx = valueIdxInsert - 1;
 		if(inTable((char*)$3) != -1)
 			yyerror("this variable has been declared before");
-		checkType($2,$5); 
+		checkType($2,$5,2); 
 		addToSymbolTable((char*)($3),$2,constantKind);
 		addToOperation('=', (char*)($3), "$");
 		par = 2;
@@ -186,14 +187,14 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
 						checkKind(getKind(i));
 						int type = getType(i);
 						scope = temp;
-						$$ = checkType(type,$3);
+						$$ = checkType(type,$3,1);
 						addToOperation('=', (char*)($1), "$");
 					}
 				}
 				else{
 					checkKind(getKind(i));
 					int type = getType(i);
-					$$ = checkType(type,$3);
+					$$ = checkType(type,$3,1);
 					addToOperation('=', (char*)($1), "$");
 				}
 				par = 2;
@@ -207,7 +208,7 @@ expression_statement: math_expression { $$ = $1; }
 
 math_expression:  expression_statement '+' term {$$ = Operations('+',(int)$1,(int)$3,1,0); }  
 	| expression_statement '-' term {	$$ = Operations('-',(int)$1,(int)$3,1,0); } 
-	| term
+	| term { $$ = $1;}
 	;
 term :term '*' factor { $$ = Operations('*',(int)$1,(int)$3,1,1); }  
 	| term '/' factor  { $$ = Operations('/',(int)$1,(int)$3,1,1); }  
@@ -258,11 +259,11 @@ block_statement :  '{''}'
 loop_block_statement : '{''}'
 		      |'{' loops_statements'}'
 
-if_statement: if_condition block_statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
-	| if_condition statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
+if_statement: if_condition block_statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
+	| if_condition statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
 	;
 
-if_condition : IF {opr('x',0);}'(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' 
+if_condition : IF { opr('x',0);}'(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' 
 {
 	if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){
 		par = 1;
@@ -277,8 +278,8 @@ else_statement : ELSE statement
 	       | ELSE block_statement
 	       | SEMICOLON
 
-nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loop_block_statement nested_else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
-	| IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loops_statement nested_else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+nested_if_statement: IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loop_block_statement nested_else_statement {$$ = checkType($3,typeBoolean,3); scope = 0; scope_inc += 1;}
+	| IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} loops_statement nested_else_statement {$$ = checkType($3,typeBoolean,3); scope = 0; scope_inc += 1;}
 	;
 
 nested_else_statement : ELSE loops_statement
@@ -294,14 +295,14 @@ while_declaraction : WHILE '(' { opr('w',0); scope = scope_inc; par = 2; }  decl
         par = 1;
         Operations('@',1,1,0,0);
     }
-	par = 2 ;opr('h',0); $$ = checkType($4,typeBoolean);
+	par = 2 ;opr('h',0); $$ = checkType($4,typeBoolean,4);
 }
 for_statement: for_declaration  loop_block_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
 	| for_declaration loops_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
 	;
 
 for_declaration: FOR {scope = scope_inc; par = 2;}'(' declaration_or_assignment_or_expression {opr('w',0);par = 2;} SEMICOLON declaration_or_assignment_or_expression {par = 2 ;opr('f',0);} SEMICOLON expression_or_assignment ')'
-				{$$ = checkType($7,typeBoolean);}
+				{$$ = checkType($7,typeBoolean,5);}
 			
 do_while_statement : DO {opr('w',0); scope = scope_inc;} loops_statement do_while_declaration {scope = 0; scope_inc += 1;}
 		    | DO {opr('w',0); scope = scope_inc;} loop_block_statement do_while_declaration {scope = 0; scope_inc += 1;}
@@ -311,12 +312,12 @@ do_while_declaration : WHILE {opr('x',0);}'('  declaration_or_assignment_or_expr
         par = 1;
         Operations('@',1,1,0,0);
     }
-	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($4,typeBoolean);
+	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($4,typeBoolean,4);
 	}
 switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaration_or_assignment_or_expression')' {if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){par = 1;Operations('#',1,1,0,0);} par = 2;}'{' case_statement '}' 
 {
 	if ($$ != -1)
-	$$ = checkType($4,$8); 
+	$$ = checkType($4,$8,6); 
 	scope = 0; scope_inc += 1;
 	opr('C',0);
 	par = 2;
@@ -345,7 +346,7 @@ function : VOID IDENTIFIER '(' arguments')'  block_statement
 	{
 		if(inTable((char*)$2) != -1)
 			yyerror("this function has been declared before");
-		$$ = checkType($1,$9); 
+		$$ = checkType($1,$9,7); 
 		scope = 0; scope_inc += 1;
 		addToSymbolTable((char*)($2),$1,functionKind); 
 	}
@@ -353,18 +354,20 @@ function : VOID IDENTIFIER '(' arguments')'  block_statement
 	{
 		if(inTable((char*)$2) != -1)
 			yyerror("this function has been declared before");
-		$$ = checkType($1,$8); 
+		$$ = checkType($1,$8,7); 
 		scope = 0; scope_inc += 1;
 		addToSymbolTable((char*)($2),$1,functionKind); 
 	}
 
-
-function_call: IDENTIFIER '('arguments')' 
+argument_call: argument_call ',' factor
+			| factor
+			
+function_call: IDENTIFIER '('argument_call')' 
 	{
 		int i = inTable((char*)($1));
 		if (i == -1)
 			yyerror("there is no function declared with this name") ; 
-		if (getKind(i) != functionKind)
+		else if (getKind(i) != functionKind)
 			yyerror("identifier is not a funcion");
 		$$ = getType(i);
 	}
@@ -390,7 +393,7 @@ void addValue(void* value , int type)
 }
 void yyerror(char *s) {
     fprintf(stderr, "%s\n", s);
-    exit(0);
+    ext = 1;
 }
 void addToSymbolTable(char* name , int type, int kind) { 
 	struct nodeTypeTag p; 
@@ -404,12 +407,14 @@ void addToSymbolTable(char* name , int type, int kind) {
 int inTable(char* name)
 {
 	for (int i =0;i < idx;i++)
-		if ( !strcmp(name,symbol_table[i].name) && symbol_table[i].scope == scope )
-			return i;      
+		if (symbol_table[i].kind!=4 && !strcmp(name,symbol_table[i].name) && symbol_table[i].scope == scope)
+			return i;  
 	return -1;
 } 
 int getType(int i)
-{       
+{
+	if (i == -1)
+		return -1;       
 	return symbol_table[i].type;
 }
 int getKind(int i)
@@ -420,14 +425,36 @@ void setUsed(int i)
 {
 	symbol_table[i].isUsed = 1;
 }
-int checkType(int x , int y){
+int checkType(int x , int y , int errorType){
 	if (x == -1)
 		return y;
 	else if (y == -1)
 		return x;
-	if (x != y){
-		yyerror("type missmatch");  
-		return 0;
+	else if (x != y){
+		switch (errorType){
+			case 1:
+				yyerror(" variable type missmatches with the assigned value "); 
+				break; 
+			case 2:
+				yyerror(" constant type missmatches with the assigned value ");  
+				break;
+			case 3:
+				yyerror(" if condition  must be of type boolean ");  
+				break;
+			case 4:
+				yyerror(" while condition must be of type boolean ");  
+				break;
+			case 5:
+				yyerror(" for condition must be of type boolean ");  
+				break;
+			case 6:
+				yyerror(" case variable type must be same as switch variable type ");  
+				break;
+			case 7:
+				yyerror(" return type must be the same as function type ");  
+				break;
+		}
+		return -1;
 	}
 	return x;
 }
@@ -443,9 +470,13 @@ void opr(int oper, int nops, ...) {
 	struct nodeTypeTag p; 
 	p.isUsed = 1;
 	p.kind = 4;
-	va_list ap;   
 	p.opr.oper = oper; 
 	p.opr.nops = nops; 
+	if(nops == 0){
+		symbol_table[idx++] = p;
+		return;
+	}
+	va_list ap;   
 	char* n[nops];
 	va_start(ap, nops); 
 	for (int i = 0; i < nops; i++){
@@ -677,7 +708,7 @@ int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
 	if (setPar)
 		par = 1;
 	valueIdxInsert = tempInsert;
-	return checkType(par1,par2); 
+	return checkType(par1,par2,1); 
 }
 void addToOperation (char operation, char* par1, char* par2)
 {
@@ -747,6 +778,8 @@ void addToOperation (char operation, char* par1, char* par2)
 //------------------------------------------------
 int main(void) {
     yyparse();
+	if(ext == 1)
+		return 0;
 	printf("\n");
 	for (int i = 0 ; i < idx ; i ++){
 		if(symbol_table[i].kind == 4 && symbol_table[i].opr.oper == 'f'){

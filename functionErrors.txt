@@ -1,0 +1,14 @@
+int z = func(1);
+z = x();
+int func(int x){
+    int y = 1;
+    return 0;
+}
+char f(int x){
+    int y = 1;
+    return 0;
+}
+int func(){
+    return 0;
+}
+func = 2;

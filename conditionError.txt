@@ -1,0 +1,11 @@
+if(int x = 3){
+
+};
+switch(true){
+    case 'a':
+        int y;
+}
+while('a'){}
+for(int i =0;12.5;i = i + 1){
+    int z = 1;
+}

@@ -1,4 +1,5 @@
-bool x;
-while(bool y = true){
-
-};
+for (int i=0;i<10;i=i+1)
+{
+   int x = i;
+}
+x = x + y * 2;
