@@ -142,7 +142,7 @@ declaration_or_assignment_or_expression : expression_or_assignment
 
 declaration_statement: data_type IDENTIFIER 
 	{
-		printf("\n");
+		printf("\t");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		addToSymbolTable((char*)($2),$1,identifierKind);
@@ -150,7 +150,7 @@ declaration_statement: data_type IDENTIFIER
 	| data_type IDENTIFIER ASSIGNMENT expression_statement
 	{
 		valueIdx = valueIdxInsert - 1;
-		printf("\n");
+		printf("\t");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		checkType($1,$4); 
@@ -187,16 +187,16 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
 						int type = getType(i);
 						scope = temp;
 						$$ = checkType(type,$3);
-                                                addToOperation('=', (char*)($1), "$");
+						addToOperation('=', (char*)($1), "$");
 					}
 				}
 				else{
 					checkKind(getKind(i));
 					int type = getType(i);
 					$$ = checkType(type,$3);
-                                        addToOperation('=', (char*)($1), "$");
+					addToOperation('=', (char*)($1), "$");
 				}
-                                par = 2;
+				par = 2;
 			}
 
 expression_statement: math_expression { $$ = $1; }
@@ -205,23 +205,11 @@ expression_statement: math_expression { $$ = $1; }
 	| function_call  { $$ = $1;}
 	;
 
-math_expression:  expression_statement '+' term 
-{
-	int inc = 0;
-	int temp;
-	if(mulDivLvl == 1){
-		temp = valueIdxInsert;
-		valueIdxInsert = valueIdxInsert - 1 - mulDivLvl;
-		inc = 1;
-	} 
-	$$ = Operations('+',(int)$1,(int)$3,1,0); 
-	if(inc == 1)
-		valueIdxInsert = temp;
-}  
-	| expression_statement '-' term { $$ = Operations('-',(int)$1,(int)$3,1,0); } 
+math_expression:  expression_statement '+' term {$$ = Operations('+',(int)$1,(int)$3,1,0); }  
+	| expression_statement '-' term {	$$ = Operations('-',(int)$1,(int)$3,1,0); } 
 	| term
 	;
-term :    term '*' factor { $$ = Operations('*',(int)$1,(int)$3,1,1); }  
+term :term '*' factor { $$ = Operations('*',(int)$1,(int)$3,1,1); }  
 	| term '/' factor  { $$ = Operations('/',(int)$1,(int)$3,1,1); }  
 	| factor { $$ = $1; }
 
@@ -247,7 +235,7 @@ factor :  data_value { $$ = $1 ; }
 		else{
 			setUsed(i);
 			$$ = getType(i); 
-                        addValue((char*)$1,-1);
+			addValue((char*)$1,-1);
 		}
 	}
 	 | { $$ = -1; }
@@ -270,9 +258,11 @@ block_statement :  '{''}'
 loop_block_statement : '{''}'
 		      |'{' loops_statements'}'
 
-if_statement: IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} block_statement else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
-	| IF '(' declaration_or_assignment_or_expression ')' {scope = scope_inc;} statement else_statement {$$ = checkType($3,typeBoolean); scope = 0; scope_inc += 1;}
+if_statement: if_condition block_statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
+	| if_condition statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
 	;
+
+if_condition : IF '(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' {par = 2 ;opr('h',0); $$=$4;}
 
 else_statement : ELSE statement
 	       | ELSE block_statement
@@ -286,33 +276,38 @@ nested_else_statement : ELSE loops_statement
 	       | ELSE loop_block_statement
 	       | SEMICOLON
 
-while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
-	| while_declaraction loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
+while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
+	| while_declaraction loops_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
 	;
-while_declaraction : WHILE '(' {opr('w',0); scope = scope_inc; par = 2;}  declaration_or_assignment_or_expression ')' 
-{
+while_declaraction : WHILE '(' { opr('w',0); scope = scope_inc; par = 2; }  declaration_or_assignment_or_expression ')' 
+{    
 	if(symbol_table[idx-1].kind != 4 || symbol_table[idx-1].opr.oper == 'w'){
-		par = 1;
-		Operations('@',1,1,0,0);
-	}
-	par = 2 ;
-	opr('h',0); $$ = $4;}
-	;    
-for_statement: for_declaration  loop_block_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
-	| for_declaration loops_statement {opr('l',0); $$ = checkType($1,typeBoolean); scope = 0; scope_inc += 1;}
+        par = 1;
+        Operations('@',1,1,0,0);
+    }
+	par = 2 ;opr('h',0); $$ = checkType($4,typeBoolean);
+}
+for_statement: for_declaration  loop_block_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
+	| for_declaration loops_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
 	;
 
-for_declaration: FOR {scope = scope_inc;par = 2;}'(' declaration_or_assignment_or_expression {opr('w',0);par = 2;} SEMICOLON declaration_or_assignment_or_expression {par = 2 ;opr('f',0);} SEMICOLON expression_or_assignment ')'
-				{$$ = $7;}
+for_declaration: FOR {scope = scope_inc; par = 2;}'(' declaration_or_assignment_or_expression {opr('w',0);par = 2;} SEMICOLON declaration_or_assignment_or_expression {par = 2 ;opr('f',0);} SEMICOLON expression_or_assignment ')'
+				{$$ = checkType($7,typeBoolean);}
 			
+do_while_statement : DO {opr('w',0); scope = scope_inc;} loops_statement do_while_declaration {scope = 0; scope_inc += 1;}
+		    | DO {opr('w',0); scope = scope_inc;} loop_block_statement do_while_declaration {scope = 0; scope_inc += 1;}
 
-
-do_while_statement : DO {scope = scope_inc;} loops_statement WHILE '('declaration_or_assignment_or_expression')'{$$ = checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
-		    | DO {scope = scope_inc;}loop_block_statement WHILE '('declaration_or_assignment_or_expression')' {$$ = checkType($6,typeBoolean); scope = 0; scope_inc += 1;}
+do_while_declaration : WHILE '('  declaration_or_assignment_or_expression ')' {
+	if(symbol_table[idx-1].kind != 4){
+        par = 1;
+        Operations('@',1,1,0,0);
+    }
+	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($3,typeBoolean);
+	}
 switch_statement : SWITCH {scope = scope_inc;}'('declaration_or_assignment_or_expression')' '{' case_statement '}' 
 {
 	if ($$ != -1)
-		$$ = checkType($4,$7); 
+	$$ = checkType($4,$7); 
 	scope = 0; scope_inc += 1;
 }
 
@@ -440,7 +435,7 @@ void opr(int oper, int nops, ...) {
 	va_list ap;   
 	p.opr.oper = oper; 
 	p.opr.nops = nops; 
-        char* n[nops];
+	char* n[nops];
 	va_start(ap, nops); 
 	for (int i = 0; i < nops; i++){
 		n[i]= va_arg(ap, char*);
@@ -451,24 +446,23 @@ void opr(int oper, int nops, ...) {
 				valueIdx ++;
 			}
 			values[valueIdx].used = 1;
-                        struct nodeTypeTag *p1;
-                        size_t nodeSize; 
-                        /* allocate node */ 
-                        nodeSize =  10 + sizeof(oprNodeType); 
-                        if ((p1 = malloc(nodeSize)) == NULL) 
-                        yyerror("out of memory");
-                        p1->kind = constantValueKind;
-                        p1->type = values[valueIdx].type;
-                        if (p1->type == typeInteger)
-                                        p1->value = &(values[valueIdx].integer);
-                        else if (p1->type == typeFloat)
-                                        p1->value = &(values[valueIdx].floatNumber);
-                        else if (p1->type == typeBoolean)
-                                        p1->value = &(values[valueIdx].boolean);
-                        else if (p1->type == typeCharchter)
-                                        p1->value = &(values[valueIdx].character);
-                        p.opr.op[i] = p1;
-                        valueIdx ++;
+			struct nodeTypeTag *p1;
+			size_t nodeSize; 
+			nodeSize =  10 + sizeof(oprNodeType); 
+			if ((p1 = malloc(nodeSize)) == NULL) 
+			yyerror("out of memory");
+			p1->kind = constantValueKind;
+			p1->type = values[valueIdx].type;
+			if (p1->type == typeInteger)
+							p1->value = &(values[valueIdx].integer);
+			else if (p1->type == typeFloat)
+							p1->value = &(values[valueIdx].floatNumber);
+			else if (p1->type == typeBoolean)
+							p1->value = &(values[valueIdx].boolean);
+			else if (p1->type == typeCharchter)
+							p1->value = &(values[valueIdx].character);
+			p.opr.op[i] = p1;
+			valueIdx ++;
 		}
 		else{
 			int place = inTable(n[i]);
@@ -508,7 +502,7 @@ int ex(nodeType *p) {
 				known = 1;
 			} 
 			else if (p->type == typeFloat) {
-				printf("\tpush\t%d\n", *((float*)p->value));
+				printf("\tpush\t%f\n", *((float*)p->value));
 				known = 1;
 			}
 			else if (p->type == typeBoolean) {
@@ -516,7 +510,7 @@ int ex(nodeType *p) {
 				known = 1;
 			}
 			else if (p->type == typeCharchter) {
-				printf("\tpush\t%s\n", *((char*)p->value));
+				printf("\tpush\t%c\n", *((char*)p->value));
 				known = 1;
 			}
 			else
@@ -545,11 +539,16 @@ int ex(nodeType *p) {
 					printf("\tjmp\tL%03d\n", lbl1); 
 					printf("L%03d:\n", lbl2); 
 					break;
-				case '@':
+				case 'i':
 					var = 0;
-					ex(p->opr.op[0]); 
-					printf("\tpop\tt%d\n", var);
-					break;	 
+					arthLvl = -1;
+					printf("L%03d:\n", lbl2); 
+					break; 
+				case '@':
+                    var = 0;
+                    ex(p->opr.op[0]); 
+                    printf("\tpop\tt%d\n", var);
+                    break; 
 				case '=':
 					if(p->opr.nops > 1){
 						ex(p->opr.op[1]);
@@ -586,21 +585,18 @@ int ex(nodeType *p) {
 								var -= 1;
 								printf("\tpush\tt%d\n",var++ );
 								printf("\tpush\tt%d\n",var );
-								var += inc;
 							}
-							else{
-								var += inc;
-							}
+							var += inc;
+							
 						} 
 						else if(p->opr.nops == 1 && p->opr.oper != '!'){
 							printf("\tpush\tt%d\n",var);
 							ex(p->opr.op[0]);
-							if(known == 0){
+							if(known == 0)
+							{
 								printf("\tpush\tt%d\n",var-1 );
-								var += inc;
 							}
-							else
-								var += inc;
+							var += inc;
 						}
 					}
 					switch(p->opr.oper) { 
@@ -630,8 +626,13 @@ int ex(nodeType *p) {
 }  
 int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
 {
+	int tempInsert = valueIdxInsert;
+	if ((operation == '+' || operation == '-') && mulDivLvl > 0)
+		valueIdxInsert = valueIdxInsert - 1 - mulDivLvl;
+
 	if (!setMulLvl)
 		mulDivLvl = 0;
+
 	int temp = valueIdx;
 	valueIdx = valueIdxInsert - par;
 	addToOperation(operation,"$","$");
@@ -640,6 +641,7 @@ int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
 		mulDivLvl += 1;
 	if (setPar)
 		par = 1;
+	valueIdxInsert = tempInsert;
 	return checkType(par1,par2); 
 }
 void addToOperation (char operation, char* par1, char* par2)
@@ -661,11 +663,11 @@ void addToOperation (char operation, char* par1, char* par2)
                 equalIndex = 0;
 
         if(values[valueIdx].type != -1 && parameter2 != -1){
-				printf("=op1\n");
-                opr(operation, par, par1, par2);
+			printf("op1\n");
+			opr(operation, par, par1, par2);
         }
         else if (values[valueIdx].type != -1 || (operation == '=')) {
-			printf("=op2\n");
+			printf("op2\n");
 			if (values[valueIdx + equalIndex].used == 1)
 				opr(operation, par, par1, "#");
 			else{
@@ -675,43 +677,42 @@ void addToOperation (char operation, char* par1, char* par2)
 			valueIdx ++;
         }
         else if (parameter2 != -1){
-			printf("=op3\n");
-                valueIdx ++;
-				if ( values[valueIdx-1].used == 1){
-					opr(operation, par,  par2, "#"); 	
-				}
-                else{
-					values[valueIdx-1].used = 1;
-					opr(operation, par, values[valueIdx-1].name, par2); 
-				}
+			printf("op3\n");
+			valueIdx ++;
+			if ( values[valueIdx-1].used == 1){
+				opr(operation, par,  par2, "#"); 	
+			}
+			else{
+				values[valueIdx-1].used = 1;
+				opr(operation, par, values[valueIdx-1].name, par2); 
+			}
         }
         else{
-			printf("=op4\n");
-				if (values[valueIdx].used == 1 && values[valueIdx+1].used == 1)
-					opr(operation, 0, "#", "#");
-				else if (values[valueIdx].used == 1)
-				{
-					values[valueIdx+1].used = 1;
-					opr(operation, par,  values[valueIdx+1].name , "#");
-				}
-				else if (values[valueIdx+1].used == 1)
-				{
-					values[valueIdx].used = 1;
-					opr(operation, par, values[valueIdx].name, "#");
-				} 	
-				else{
-					values[valueIdx].used = 1;
-					values[valueIdx+1].used = 1;
-					opr(operation, par, values[valueIdx].name, values[valueIdx+1].name);
-				}
-                valueIdx += 2;
+			printf("op4\n");
+			if (values[valueIdx].used == 1 && values[valueIdx+1].used == 1)
+				opr(operation, 0, "#", "#");
+			else if (values[valueIdx].used == 1)
+			{
+				values[valueIdx+1].used = 1;
+				opr(operation, par,  values[valueIdx+1].name , "#");
+			}
+			else if (values[valueIdx+1].used == 1)
+			{
+				values[valueIdx].used = 1;
+				opr(operation, par, values[valueIdx].name, "#");
+			} 	
+			else{
+				values[valueIdx].used = 1;
+				values[valueIdx+1].used = 1;
+				opr(operation, par, values[valueIdx].name, values[valueIdx+1].name);
+			}
+			valueIdx += 2;
         }
 }
 //------------------------------------------------
 int main(void) {
     yyparse();
-	printf("# of values %d\n", valueIdxInsert);
-	//return 0;
+	printf("\n");
 	for (int i = 0 ; i < idx ; i ++){
 		if(symbol_table[i].kind == 4 && symbol_table[i].opr.oper == 'f'){
 			symbol_table[i].opr.oper = 'h';
@@ -734,6 +735,7 @@ int main(void) {
 			ex(&(symbol_table[i]));
 		}
 	}
+	printf("\tEND\t\n");
     for (int i=0;i<idx;i++)
     {
 	if (symbol_table[i].isUsed == 0)
