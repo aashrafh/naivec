@@ -143,7 +143,6 @@ declaration_or_assignment_or_expression : expression_or_assignment
 
 declaration_statement: data_type IDENTIFIER 
 	{
-		printf("\t");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		addToSymbolTable((char*)($2),$1,identifierKind);
@@ -151,7 +150,6 @@ declaration_statement: data_type IDENTIFIER
 	| data_type IDENTIFIER ASSIGNMENT expression_statement
 	{
 		valueIdx = valueIdxInsert - 1;
-		printf("\t");
 		if(inTable((char*)$2) != -1)
 			yyerror("this variable has been declared before");
 		checkType($1,$4,1); 
@@ -314,7 +312,7 @@ do_while_declaration : WHILE {opr('x',0);}'('  declaration_or_assignment_or_expr
     }
 	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($4,typeBoolean,4);
 	}
-switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaration_or_assignment_or_expression')' {if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){par = 1;Operations('#',1,1,0,0);} par = 2;}'{' case_statement '}' 
+switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaration_or_assignment_or_expression')' {Operations('#',1,1,0,0); par = 2;}'{' case_statement '}' 
 {
 	if ($$ != -1)
 	$$ = checkType($4,$8,6); 
@@ -323,7 +321,7 @@ switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaratio
 	par = 2;
 }
 
-case_statement : CASE {par = 2; scope = scope_inc;} expression_or_assignment {par = 1;Operations('A',0,0,0,0); par = 2;} COLON loops_statements {opr('B',0); opr('i',0);}case_statement { par = 2;$$ = $3; scope_inc ++; scope = 0;}
+case_statement : CASE {par = 2; scope = scope_inc;} expression_or_assignment {par = 1;Operations('A',0,0,0,0); par = 2;} COLON loops_statements {opr('B',0); opr('i',0); scope_inc ++; scope = 0;}case_statement { par = 2;$$ = $3; scope_inc ++; scope = 0;}
 		| DEFAULT {scope = scope_inc;} COLON loops_statements { scope_inc ++; scope = 0; $$ = -1;}
 		| { $$ = -1;}
 		;
@@ -433,25 +431,25 @@ int checkType(int x , int y , int errorType){
 	else if (x != y){
 		switch (errorType){
 			case 1:
-				yyerror(" variable type missmatches with the assigned value "); 
+				yyerror("variable type missmatches with the assigned value "); 
 				break; 
 			case 2:
-				yyerror(" constant type missmatches with the assigned value ");  
+				yyerror("constant type missmatches with the assigned value ");  
 				break;
 			case 3:
-				yyerror(" if condition  must be of type boolean ");  
+				yyerror("if condition  must be of type boolean ");  
 				break;
 			case 4:
-				yyerror(" while condition must be of type boolean ");  
+				yyerror("while condition must be of type boolean ");  
 				break;
 			case 5:
-				yyerror(" for condition must be of type boolean ");  
+				yyerror("for condition must be of type boolean ");  
 				break;
 			case 6:
-				yyerror(" case variable type must be same as switch variable type ");  
+				yyerror("case variable type must be same as switch variable type ");  
 				break;
 			case 7:
-				yyerror(" return type must be the same as function type ");  
+				yyerror("return type must be the same as function type ");  
 				break;
 		}
 		return -1;
@@ -472,18 +470,14 @@ void opr(int oper, int nops, ...) {
 	p.kind = 4;
 	p.opr.oper = oper; 
 	p.opr.nops = nops; 
-	if(nops == 0){
-		symbol_table[idx++] = p;
-		return;
-	}
 	va_list ap;   
-	char* n[nops];
+	//char* n[nops];
 	va_start(ap, nops); 
 	for (int i = 0; i < nops; i++){
-		n[i]= va_arg(ap, char*);
-		if (!strcmp(n[i],"#"))
+		char* x= va_arg(ap, char*);
+		if (!strcmp(x,"#"))
 			continue;
-		if(!strcmp(n[i],"$")){
+		if(!strcmp(x,"$")){
 			while(values[valueIdx].used == 1 ){
 				valueIdx ++;
 			}
@@ -507,11 +501,11 @@ void opr(int oper, int nops, ...) {
 			valueIdx ++;
 		}
 		else{
-			int place = inTable(n[i]);
+			int place = inTable(x);
 			if(place == -1){
 				int temp = scope;
 				scope = 0 ;
-				place = inTable(n[i]);
+				place = inTable(x);
 				if(place == -1)
 					yyerror("variable used before declaration") ; 
 				else{
@@ -572,6 +566,8 @@ int ex(nodeType *p) {
 			switch(p->opr.oper){
 				case '#':
 					ex(p->opr.op[0]); 
+					if(known != 1)
+						printf("\tpush\tt%d\n", var++);	
 					printf("\tpop\tr\n");
 					break;
 				case 'A':
@@ -729,11 +725,9 @@ void addToOperation (char operation, char* par1, char* par2)
                 equalIndex = 0;
 
         if(values[valueIdx].type != -1 && parameter2 != -1){
-			printf("op1\n");
 			opr(operation, par, par1, par2);
         }
         else if (values[valueIdx].type != -1 || (operation == '=')) {
-			printf("op2\n");
 			if (values[valueIdx + equalIndex].used == 1)
 				opr(operation, par, par1, "#");
 			else{
@@ -743,7 +737,6 @@ void addToOperation (char operation, char* par1, char* par2)
 			valueIdx ++;
         }
         else if (parameter2 != -1){
-			printf("op3\n");
 			valueIdx ++;
 			if ( values[valueIdx-1].used == 1){
 				opr(operation, par,  par2, "#"); 	
@@ -754,7 +747,6 @@ void addToOperation (char operation, char* par1, char* par2)
 			}
         }
         else{
-			printf("op4\n");
 			if (values[valueIdx].used == 1 && values[valueIdx+1].used == 1)
 				opr(operation, 0, "#", "#");
 			else if (values[valueIdx].used == 1)
@@ -808,7 +800,7 @@ int main(void) {
     {
 	if (symbol_table[i].isUsed == 0)
 	{
-		printf("%s is not used\n",symbol_table[i].name);
+		printf("%s is not used ,scope: %d\n",symbol_table[i].name,symbol_table[i].scope);
 	}
     }
     return 0;

@@ -1,5 +1,9 @@
 int x = 3;
+const bool new = true;
 int y = 3;
+char qw;
+qw = 'a' + 'c';
+float flt = 1.3 * 10.3;
 x = x + y * 2;
 x = y + x + x - 45 * 90 / 125 + 100 - 123 / 2;
 while((x < 5 ) && (y >= 10)){
@@ -11,21 +15,19 @@ for (int i=0;i<10;i=i+1)
    int x = i;
 }
 x = x + y * 2;
-bool w = (!true || false) && (false && false);
+bool w = (!true || new) && (false && false);
 do{
     int g = 1 + 2;
 }while(!w);
-if(w){
+int f = 1;
+if(!w){
     int f = 1;
 };
-if(w){
-    int f = 1;
-};
-switch(w){
+switch(!w){
     case true:
         int asf = 1;
     case !w:
-        asf = 1;
+        int asf = 1;
     default:
-        asf = 1;
+        int asf = 1;
 }
