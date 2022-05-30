@@ -128,7 +128,7 @@ data_type: INT { $$ = typeInteger; }
 
 data_value: 
 	INT_TYPE { addValue(&($1),typeInteger);$$ = typeInteger }
-	| FLOAT_TYPE { float x = atof($1);addValue(&(x),typeFloat);$$ = typeFloat }
+	| FLOAT_TYPE { const char* y = (char*)$1 ;float x = atof(y);addValue(&(x),typeFloat);$$ = typeFloat }
 	| BOOLEAN_TYPE { addValue(&($1),typeBoolean);$$ = typeBoolean }
 	| CHARACTER_TYPE { addValue(&($1),typeCharchter);$$ = typeCharchter }
 	| STRING_TYPE { $$ = typeString }
