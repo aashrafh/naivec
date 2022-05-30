@@ -390,6 +390,8 @@ void addValue(void* value , int type)
 	values[valueIdxInsert++] = p;
 }
 void yyerror(char *s) {
+	if (ext == 0)
+		printf("----------The file has compilation errors-----\t\n");
     fprintf(stderr, "%s\n", s);
     ext = 1;
 }
@@ -774,7 +776,8 @@ int main(void) {
     yyparse();
 	if(ext == 1)
 		return 0;
-	printf("\n");
+	printf("----------The file is compiled successfully-----\t\n");
+	printf("----------Start Quadruples----------------------\t\n");
 	for (int i = 0 ; i < idx ; i ++){
 		if(symbol_table[i].kind == 4 && symbol_table[i].opr.oper == 'f'){
 			symbol_table[i].opr.oper = 'h';
@@ -797,13 +800,10 @@ int main(void) {
 			ex(&(symbol_table[i]));
 		}
 	}
-	printf("\tEND\t\n");
+	printf("-----------END Quadruples-----\t\n");
+	printf("-----------Symbol Table-------\t\n");
     for (int i=0;i<idx;i++)
-    {
-	if (symbol_table[i].isUsed == 0)
-	{
-		printf("%s is not used ,scope: %d\n",symbol_table[i].name,symbol_table[i].scope);
-	}
-    }
+		if (symbol_table[i].kind!=4)
+			printf("variable name: %s  \t,scope: %d\t,is used: %d\n",symbol_table[i].name,symbol_table[i].scope,symbol_table[i].isUsed);
     return 0;
 }

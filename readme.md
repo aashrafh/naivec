@@ -22,6 +22,12 @@ Abdelrahman Ahmed Fadl | 1 | 32
 - functions are implemented void function doesn't have a return and returned type functions must have a return
 - inline and block comments are implemented 
 - block comments cannot include * in it
+---
+# Phase 2
+- We have written 4 input files 1 for all the cases that passes with no error run **_compiler.exe < generate.txt_** it will print in the end the symbol table and the quadruples and the scope of each variable and whether it is used or not 
+- the other 3 files contain 3 types of errors one for variables one for functions and one for the loops and conditions
+- to run each use **_compiler.exe < conditionError.txt_** and **_compiler.exe < functionErrors.txt_** and  **_compiler.exe < variablesErrors.txt_**
+
 
 
         
