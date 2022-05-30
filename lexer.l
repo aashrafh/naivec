@@ -1,5 +1,8 @@
 %{
     #include<stdlib.h>
+    #include<stdio.h>
+    #include <stdarg.h> 
+    #include <string.h>
     #include "parser.tab.h"
     void yyerror(char *s);
 %}
@@ -42,11 +45,11 @@ return      return RETURN;
 [-+*/{}~^&|(),:=%]                          return yytext[0];
 true|false                                  yylval=!strcmp(yytext,"true"); return BOOLEAN_TYPE;
 [0-9]+                                      yylval=atoi(yytext); return INT_TYPE;
-[0-9]*\.[0-9]+                              yylval=atof(yytext); return FLOAT_TYPE;
+[0-9]*\.[0-9]+                              yylval=strdup(yytext);return FLOAT_TYPE;
 ['][a-zA-Z][']                              yylval=yytext[1]; return CHARACTER_TYPE;
-\"[^"]*\"                                   yylval=strdup(yytext+1); return STRING_TYPE;
+\"[^"]*\"                                   return STRING_TYPE;
 [a-zA-Z\_][0-9a-zA-Z\_]*                    yylval=strdup(yytext); return IDENTIFIER;
-\/\/[^\n].*                                                 ;
+\/\/[^\n].*                                                ;
 \/\*[^*]*\*\/                                               ;
 [ \t\n]+                                                    ;
 

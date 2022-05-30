@@ -128,7 +128,7 @@ data_type: INT { $$ = typeInteger; }
 
 data_value: 
 	INT_TYPE { addValue(&($1),typeInteger);$$ = typeInteger }
-	| FLOAT_TYPE { addValue(&($1),typeFloat);$$ = typeFloat }
+	| FLOAT_TYPE { float x = atof($1);addValue(&(x),typeFloat);$$ = typeFloat }
 	| BOOLEAN_TYPE { addValue(&($1),typeBoolean);$$ = typeBoolean }
 	| CHARACTER_TYPE { addValue(&($1),typeCharchter);$$ = typeCharchter }
 	| STRING_TYPE { $$ = typeString }
@@ -484,19 +484,19 @@ void opr(int oper, int nops, ...) {
 			values[valueIdx].used = 1;
 			struct nodeTypeTag *p1;
 			size_t nodeSize; 
-			nodeSize =  10 + sizeof(oprNodeType); 
+			nodeSize =  15 + sizeof(oprNodeType); 
 			if ((p1 = malloc(nodeSize)) == NULL) 
 			yyerror("out of memory");
 			p1->kind = constantValueKind;
 			p1->type = values[valueIdx].type;
 			if (p1->type == typeInteger)
-							p1->value = &(values[valueIdx].integer);
+				p1->value = &(values[valueIdx].integer);
 			else if (p1->type == typeFloat)
-							p1->value = &(values[valueIdx].floatNumber);
+				p1->value = &(values[valueIdx].floatNumber);
 			else if (p1->type == typeBoolean)
-							p1->value = &(values[valueIdx].boolean);
+				p1->value = &(values[valueIdx].boolean);
 			else if (p1->type == typeCharchter)
-							p1->value = &(values[valueIdx].character);
+				p1->value = &(values[valueIdx].character);
 			p.opr.op[i] = p1;
 			valueIdx ++;
 		}
@@ -519,8 +519,10 @@ void opr(int oper, int nops, ...) {
 		}
 	} 
 	va_end(ap);
-	if(p.opr.oper == '/' && ((p.opr.op[1]->type == typeInteger && *(int*)(p.opr.op[1]->value) == 0)||(p.opr.op[1]->type == typeFloat && *(float*)(p.opr.op[1]->value) == 0)))
+	if(p.opr.oper == '/' && p.opr.nops == 2 &&((p.opr.op[1]->type == typeInteger && *(int*)(p.opr.op[1]->value) == 0)||(p.opr.op[1]->type == typeFloat && *(float*)(p.opr.op[1]->value) == 0)))
 		yyerror("error: division by zero");
+	if (p.opr.oper == '/' && p.opr.nops == 1 && ((p.opr.op[0]->type == typeInteger && *(int*)(p.opr.op[0]->value) == 0)||(p.opr.op[0]->type == typeFloat && *(float*)(p.opr.op[0]->value) == 0)))
+			yyerror("error: division by zero");
 	symbol_table[idx++] = p;
 } 
 //----------------------------------------------

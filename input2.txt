@@ -1,5 +1,3 @@
-for (int i=0;i<10;i=i+1)
-{
-   int x = i;
-}
-x = x + y * 2;
+int x;
+int y;
+x = y *  90 / 125;
