@@ -135,7 +135,9 @@ L005:
 	jz	L006
 	push	1
 	pop	f
+	jmp	S000
 L006:
+S000:
 	push	w
 	not	t1
 	push	t1
@@ -148,7 +150,7 @@ L006:
 	push	1
 	push	t2
 	pop	asf
-	jmp	S000
+	jmp	S001
 L007:
 	push	w
 	not	t1
@@ -160,11 +162,28 @@ L007:
 	push	1
 	push	t2
 	pop	asf
-	jmp	S000
+	jmp	S001
 L008:
 	push	1
 	pop	asf
-S000:
+S001:
+	push	0
+	pop	t0
+	push	t0
+	jz	L009
+	push	x
+	push	4
+	mul	t1
+	push	t1
+	pop	x
+	jmp	S002
+L009:
+	push	x
+	push	y
+	add	t1
+	push	t1
+	pop	y
+S002:
 -----------END Quadruples-----	
 -----------Symbol Table-------	
 variable name: x	,scope: 0	,is used: 1

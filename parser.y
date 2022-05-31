@@ -265,8 +265,8 @@ block_statement :  '{''}'
 loop_block_statement : '{''}'
 		      |'{' loops_statements'}'
 
-if_statement: if_condition block_statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
-	| if_condition statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
+if_statement: if_condition block_statement {opr('B',0);opr('i',0);}else_statement {opr('C',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
+	| if_condition statement {opr('B',0);opr('i',0);}else_statement {opr('C',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
 	;
 
 if_condition : IF { opr('x',0);}'(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' {

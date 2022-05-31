@@ -31,3 +31,9 @@ switch(!w){
     default:
         int asf = 1;
 }
+if(false){
+    x = x * 4;
+}
+else{
+    y = x + y;
+}
