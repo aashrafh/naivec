@@ -20,7 +20,7 @@
 	push	2
 	mul	t1
 	push	t1
-	push	t0
+	push	x
 	add	t2
 	push	t2
 	pop	x
@@ -55,9 +55,10 @@ L000:
 	push	5
 	compLT	t1
 	push	y
-	push	10
+	push	x
 	compGE	t2
-	push	10
+	push	t1
+	push	t2
 	and	t3
 	push	t3
 	jz	L001
@@ -143,7 +144,7 @@ L006:
 	push	1
 	compEQ	t2
 	push	t2
-	jzL007
+	jz	L007
 	push	1
 	push	t2
 	pop	asf

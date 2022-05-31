@@ -160,6 +160,7 @@ declaration_statement: data_type IDENTIFIER
 		checkType($1,$4,1); 
 		addToSymbolTable((char*)($2),$1,identifierKind);
 		addToOperation('=', (char*)($2), "$");
+		mulDivLvl = 0;
 		par = 2;
 	}
 	| CONSTANT data_type IDENTIFIER ASSIGNMENT expression_statement        
@@ -170,6 +171,7 @@ declaration_statement: data_type IDENTIFIER
 		checkType($2,$5,2); 
 		addToSymbolTable((char*)($3),$2,constantKind);
 		addToOperation('=', (char*)($3), "$");
+		mulDivLvl = 0;
 		par = 2;
 	}
 	;
@@ -200,6 +202,7 @@ assignment_statement : IDENTIFIER ASSIGNMENT expression_statement
 					$$ = checkType(type,$3,1);
 					addToOperation('=', (char*)($1), "$");
 				}
+				mulDivLvl = 0;
 				par = 2;
 			}
 
@@ -473,13 +476,13 @@ void opr(int oper, int nops, ...) {
 		if (!strcmp(x,"#"))
 			continue;
 		if(!strcmp(x,"$")){
-			while(values[valueIdx].used == 1 ){
+			while(values[valueIdx].used == 1 || values[valueIdx].type==-1){
 				valueIdx ++;
 			}
 			values[valueIdx].used = 1;
 			struct nodeTypeTag *p1;
 			size_t nodeSize; 
-			nodeSize =  15 + sizeof(oprNodeType); 
+			nodeSize =  8 + sizeof(oprNodeType); 
 			if ((p1 = malloc(nodeSize)) == NULL) 
 				yyerror("out of memory");
 			p1->kind = constantValueKind;
@@ -639,10 +642,12 @@ int ex(nodeType *p) {
 					else{
 						if(p->opr.nops > 1){
 							ex(p->opr.op[0]);
-							ex(p->opr.op[1]);
-							if (known != 1){
+							if(known != 1){
 								var -= 1;
 								fprintf( outFilePtr,"\tpush\tt%d\n",var++ );
+							}
+							ex(p->opr.op[1]);
+							if (known != 1){
 								fprintf( outFilePtr,"\tpush\tt%d\n",var );
 							}
 							var += inc;
