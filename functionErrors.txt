@@ -1,14 +1,15 @@
-int z = func(1);
-z = x();
+int z = func(1); // function func is not declared before
+int x = 3;
+z = x(); // x is not a function it is a variable
 int func(int x){
     int y = 1;
     return 0;
 }
-char f(int x){
+char func(){ // func is declared before with the same name
+    return 'a';
+}
+char f(int x){ // f return type is character while returning integer
     int y = 1;
     return 0;
 }
-int func(){
-    return 0;
-}
-func = 2;
+func = 2; // function cannot be modified 

@@ -1,0 +1,5 @@
+----------The file has compilation errors-----	
+if condition  must be of type boolean 
+case variable type must be same as switch variable type 
+while condition must be of type boolean 
+for condition must be of type boolean 

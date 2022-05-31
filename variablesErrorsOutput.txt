@@ -1,0 +1,8 @@
+----------The file has compilation errors-----	
+error: division by zero
+variable used before declaration
+this variable has been declared before
+constant cannot be modified
+variable type missmatches with the assigned value 
+constant type missmatches with the assigned value 
+variable used before declaration

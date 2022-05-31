@@ -14,6 +14,7 @@
     #define constantKind 2
     #define constantValueKind 5
     #define functionKind 3
+	typedef struct yy_buffer_state * YY_BUFFER_STATE;
     void yyerror(char *s);
     int yylex();
     void addToSymbolTable(char* name , int type, int kind);
@@ -37,8 +38,12 @@
 	int addSubLvl = 0;
 	int mulDivLvl = 0;
 	void addValue(void* value , int type);
-	void addToOperation (char operation, char* par1, char* par2); 
+	void addToOperation (char operation, char* par1, char* par2);
+	char * readFile(char* fileName); 
 	int ext = 0;   
+	FILE *outFilePtr;
+	YY_BUFFER_STATE yy_scan_string(char * );
+	void yy_delete_buffer(YY_BUFFER_STATE buffer);
 %}
 
 
@@ -261,8 +266,7 @@ if_statement: if_condition block_statement else_statement {opr('i',0); $$ = chec
 	| if_condition statement else_statement {opr('i',0); $$ = checkType($1,typeBoolean,3); scope = 0; scope_inc += 1;}
 	;
 
-if_condition : IF { opr('x',0);}'(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' 
-{
+if_condition : IF { opr('x',0);}'(' {scope = scope_inc; par = 2;} declaration_or_assignment_or_expression ')' {
 	if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'x'){
 		par = 1;
 		Operations('@',1,1,0,0);
@@ -287,8 +291,7 @@ nested_else_statement : ELSE loops_statement
 while_statement: while_declaraction  loop_block_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
 	| while_declaraction loops_statement {opr('l',0); $$ = $1; scope = 0; scope_inc += 1;}
 	;
-while_declaraction : WHILE '(' { opr('w',0); scope = scope_inc; par = 2; }  declaration_or_assignment_or_expression ')' 
-{    
+while_declaraction : WHILE '(' { opr('w',0); scope = scope_inc; par = 2; }  declaration_or_assignment_or_expression ')' {    
 	if(symbol_table[idx-1].kind == 4 && symbol_table[idx-1].opr.oper == 'w'){
         par = 1;
         Operations('@',1,1,0,0);
@@ -312,8 +315,7 @@ do_while_declaration : WHILE {opr('x',0);}'('  declaration_or_assignment_or_expr
     }
 	par = 2 ;opr('h',0); opr('l',0); $$ = checkType($4,typeBoolean,4);
 	}
-switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaration_or_assignment_or_expression')' {Operations('#',1,1,0,0); par = 2;}'{' case_statement '}' 
-{
+switch_statement : SWITCH {scope = scope_inc; opr('x',0); par = 2;}'('declaration_or_assignment_or_expression')' {Operations('#',1,1,0,0); par = 2;}'{' case_statement '}' {
 	if ($$ != -1)
 	$$ = checkType($4,$8,6); 
 	scope = 0; scope_inc += 1;
@@ -333,23 +335,20 @@ arguments: arguments ',' argument
 
 argument : data_type IDENTIFIER { scope = scope_inc; addToSymbolTable((char*)($2),$1,identifierKind);}
 	
-function : VOID IDENTIFIER '(' arguments')'  block_statement 
-	{
+function : VOID IDENTIFIER '(' arguments')'  block_statement {
 		if(inTable((char*)$2) != -1)
 			yyerror("this function has been declared before");
 		scope = 0; scope_inc += 1;
 		addToSymbolTable((char*)($2),typeVoid,functionKind);
 	}
-	|  data_type IDENTIFIER  '(' arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON '}' 
-	{
+	|  data_type IDENTIFIER  '(' arguments')'  '{' statements RETURN expression_or_assignment SEMICOLON '}' {
 		if(inTable((char*)$2) != -1)
 			yyerror("this function has been declared before");
 		$$ = checkType($1,$9,7); 
 		scope = 0; scope_inc += 1;
 		addToSymbolTable((char*)($2),$1,functionKind); 
 	}
-	| data_type IDENTIFIER  '(' arguments')' '{'  RETURN expression_or_assignment SEMICOLON   '}'
-	{
+	| data_type IDENTIFIER  '(' arguments')' '{'  RETURN expression_or_assignment SEMICOLON   '}'{
 		if(inTable((char*)$2) != -1)
 			yyerror("this function has been declared before");
 		$$ = checkType($1,$8,7); 
@@ -372,8 +371,7 @@ function_call: IDENTIFIER '('argument_call')'
 %%
 
 
-void addValue(void* value , int type)
-{
+void addValue(void* value , int type){
 	struct valueNodes p;
 	p.type = type;
 	p.used = 0;
@@ -391,8 +389,8 @@ void addValue(void* value , int type)
 }
 void yyerror(char *s) {
 	if (ext == 0)
-		printf("----------The file has compilation errors-----\t\n");
-    fprintf(stderr, "%s\n", s);
+		fprintf( outFilePtr,"----------The file has compilation errors-----\t\n");
+    fprintf(outFilePtr, "%s\n", s);
     ext = 1;
 }
 void addToSymbolTable(char* name , int type, int kind) { 
@@ -404,25 +402,21 @@ void addToSymbolTable(char* name , int type, int kind) {
 	p.scope = scope;
 	symbol_table[idx++] = p;
 } 
-int inTable(char* name)
-{
+int inTable(char* name){
 	for (int i =0;i < idx;i++)
 		if (symbol_table[i].kind!=4 && !strcmp(name,symbol_table[i].name) && symbol_table[i].scope == scope)
 			return i;  
 	return -1;
 } 
-int getType(int i)
-{
+int getType(int i){
 	if (i == -1)
 		return -1;       
 	return symbol_table[i].type;
 }
-int getKind(int i)
-{
+int getKind(int i){
 	return symbol_table[i].kind;
 }
-void setUsed(int i)
-{
+void setUsed(int i){
 	symbol_table[i].isUsed = 1;
 }
 int checkType(int x , int y , int errorType){
@@ -458,8 +452,7 @@ int checkType(int x , int y , int errorType){
 	}
 	return x;
 }
-int checkKind (int kind)
-{
+int checkKind (int kind){
 	if (kind == 2)
 		yyerror("constant cannot be modified");  
 	if (kind == 3)
@@ -488,7 +481,7 @@ void opr(int oper, int nops, ...) {
 			size_t nodeSize; 
 			nodeSize =  15 + sizeof(oprNodeType); 
 			if ((p1 = malloc(nodeSize)) == NULL) 
-			yyerror("out of memory");
+				yyerror("out of memory");
 			p1->kind = constantValueKind;
 			p1->type = values[valueIdx].type;
 			if (p1->type == typeInteger)
@@ -541,87 +534,87 @@ int ex(nodeType *p) {
 	switch(p->kind) {
 		case constantValueKind:
 			if (p->type == typeInteger){
-				printf("\tpush\t%d\n", *((int*)p->value)); 
+				fprintf( outFilePtr,"\tpush\t%d\n", *((int*)p->value)); 
 				known = 1;
 			} 
 			else if (p->type == typeFloat) {
-				printf("\tpush\t%f\n", *((float*)p->value));
+				fprintf( outFilePtr,"\tpush\t%f\n", *((float*)p->value));
 				known = 1;
 			}
 			else if (p->type == typeBoolean) {
-				printf("\tpush\t%d\n", *((int*)p->value));
+				fprintf( outFilePtr,"\tpush\t%d\n", *((int*)p->value));
 				known = 1;
 			}
 			else if (p->type == typeCharchter) {
-				printf("\tpush\t%c\n", *((char*)p->value));
+				fprintf( outFilePtr,"\tpush\t%c\n", *((char*)p->value));
 				known = 1;
 			}
 			else
 				known -= 1;
 			break;
 		case constantKind: 
-			printf("\tpush\t%s\n", p->name); 
+			fprintf( outFilePtr,"\tpush\t%s\n", p->name); 
 			break; 
 		case identifierKind:
 			known = 1; 
-			printf("\tpush\t%s\n", p->name); 
+			fprintf( outFilePtr,"\tpush\t%s\n", p->name); 
 			break; 
 		case 4:
 			switch(p->opr.oper){
 				case '#':
 					ex(p->opr.op[0]); 
 					if(known != 1)
-						printf("\tpush\tt%d\n", var++);	
-					printf("\tpop\tr\n");
+						fprintf( outFilePtr,"\tpush\tt%d\n", var++);	
+					fprintf( outFilePtr,"\tpop\tr\n");
 					break;
 				case 'A':
-					printf("\tpush\tr\n");
+					fprintf( outFilePtr,"\tpush\tr\n");
 					ex(p->opr.op[0]);
 					if(known < 1)
-						printf("\tpush\tt%d\n", var++);	
-					printf("\tcompEQ\tt%d\n",var); 
-					printf("\tpush\tt%d\n", var);
-					printf("\tjz\tL%03d\n", lbl2 = lbl++); 
+						fprintf( outFilePtr,"\tpush\tt%d\n", var++);	
+					fprintf( outFilePtr,"\tcompEQ\tt%d\n",var); 
+					fprintf( outFilePtr,"\tpush\tt%d\n", var);
+					fprintf( outFilePtr,"\tjz\tL%03d\n", lbl2 = lbl++); 
 					break;
 				case 'B':
-					printf("\tjmp\tS%03d\n", sCase); 
+					fprintf( outFilePtr,"\tjmp\tS%03d\n", sCase); 
 					break;
 				case 'C':
-					printf("S%03d:\n", sCase++);
+					fprintf( outFilePtr,"S%03d:\n", sCase++);
 					break; 
 				case 'x':
 					break;
 				case 'w':
-					printf("L%03d:\n", lbl1 = lbl++);
+					fprintf( outFilePtr,"L%03d:\n", lbl1 = lbl++);
 					break; 
 				case 'h':
 					operation = 0;
-					printf("\tpush\tt%d\n", var);	 
-					printf("\tjz\tL%03d\n", lbl2 = lbl++); 
+					fprintf( outFilePtr,"\tpush\tt%d\n", var);	 
+					fprintf( outFilePtr,"\tjz\tL%03d\n", lbl2 = lbl++); 
 					break; 
 				case 'l':
 					var = 0;
 					arthLvl = -1;
-					printf("\tjmp\tL%03d\n", lbl1); 
-					printf("L%03d:\n", lbl2); 
+					fprintf( outFilePtr,"\tjmp\tL%03d\n", lbl1); 
+					fprintf( outFilePtr,"L%03d:\n", lbl2); 
 					break;
 				case 'i':
 					var = 0;
 					arthLvl = -1;
-					printf("L%03d:\n", lbl2); 
+					fprintf( outFilePtr,"L%03d:\n", lbl2); 
 					break; 
 				case '@':
                     var = 0;
                     ex(p->opr.op[0]); 
-                    printf("\tpop\tt%d\n", var);
+                    fprintf( outFilePtr,"\tpop\tt%d\n", var);
                     break; 
 				case '=':
 					if(p->opr.nops > 1){
 						ex(p->opr.op[1]);
 					}
 					if (operation == 1)
-						printf("\tpush\tt%d\n", var);	 
-					printf("\tpop\t%s\n", p->opr.op[0]->name);
+						fprintf( outFilePtr,"\tpush\tt%d\n", var);	 
+					fprintf( outFilePtr,"\tpop\t%s\n", p->opr.op[0]->name);
 					var = 0; 
 					arthLvl = -1;
 					operation = 0;
@@ -639,8 +632,8 @@ int ex(nodeType *p) {
 					operation = 1;
 					if (p->opr.nops == 0){
 						var -= 1;
-						printf("\tpush\tt%d\n",var++ );
-						printf("\tpush\tt%d\n",var );
+						fprintf( outFilePtr,"\tpush\tt%d\n",var++ );
+						fprintf( outFilePtr,"\tpush\tt%d\n",var );
 						var += inc;
 					}
 					else{
@@ -649,49 +642,48 @@ int ex(nodeType *p) {
 							ex(p->opr.op[1]);
 							if (known != 1){
 								var -= 1;
-								printf("\tpush\tt%d\n",var++ );
-								printf("\tpush\tt%d\n",var );
+								fprintf( outFilePtr,"\tpush\tt%d\n",var++ );
+								fprintf( outFilePtr,"\tpush\tt%d\n",var );
 							}
 							var += inc;
 							
 						} 
 						else if(p->opr.nops == 1 && p->opr.oper != '!'){
-							printf("\tpush\tt%d\n",var);
+							fprintf( outFilePtr,"\tpush\tt%d\n",var);
 							ex(p->opr.op[0]);
 							if(known == 0)
 							{
-								printf("\tpush\tt%d\n",var-1 );
+								fprintf( outFilePtr,"\tpush\tt%d\n",var-1 );
 							}
 							var += inc;
 						}
 					}
 					switch(p->opr.oper) { 
-					case '+': printf("\tadd\tt%d\n",var); arthLvl = 0 ;break; 
-					case '-': printf("\tsub\tt%d\n",var); arthLvl = 0 ; break; 
-					case '*': printf("\tmul\tt%d\n",var); arthLvl = 1 ;break; 
-					case '/': printf("\tdiv\tt%d\n",var); arthLvl = 1 ;break;
+					case '+': fprintf( outFilePtr,"\tadd\tt%d\n",var); arthLvl = 0 ;break; 
+					case '-': fprintf( outFilePtr,"\tsub\tt%d\n",var); arthLvl = 0 ; break; 
+					case '*': fprintf( outFilePtr,"\tmul\tt%d\n",var); arthLvl = 1 ;break; 
+					case '/': fprintf( outFilePtr,"\tdiv\tt%d\n",var); arthLvl = 1 ;break;
 					case '!':
 						ex(p->opr.op[0]);
 						if (known != 1) 
-							printf("\tpush\tt%d\n",var); 
+							fprintf( outFilePtr,"\tpush\tt%d\n",var); 
 						var += inc;
-						printf("\tnot\tt%d\n",var); 
+						fprintf( outFilePtr,"\tnot\tt%d\n",var); 
 						break;  
-					case '&': printf("\tand\tt%d\n",var); break; 
-					case '|':  printf("\tor\tt%d\n",var); break;  
-					case '<': printf("\tcompLT\tt%d\n",var); break; 
-					case '>': printf("\tcompGT\tt%d\n",var); break; 
-					case 'G': printf("\tcompGE\tt%d\n",var); break; 
-					case 'L': printf("\tcompLE\tt%d\n",var); break; 
-					case 'N': printf("\tcompNE\tt%d\n",var); break; 
-					case 'E': printf("\tcompEQ\tt%d\n",var); break; 
+					case '&': fprintf( outFilePtr,"\tand\tt%d\n",var); break; 
+					case '|':  fprintf( outFilePtr,"\tor\tt%d\n",var); break;  
+					case '<': fprintf( outFilePtr,"\tcompLT\tt%d\n",var); break; 
+					case '>': fprintf( outFilePtr,"\tcompGT\tt%d\n",var); break; 
+					case 'G': fprintf( outFilePtr,"\tcompGE\tt%d\n",var); break; 
+					case 'L': fprintf( outFilePtr,"\tcompLE\tt%d\n",var); break; 
+					case 'N': fprintf( outFilePtr,"\tcompNE\tt%d\n",var); break; 
+					case 'E': fprintf( outFilePtr,"\tcompEQ\tt%d\n",var); break; 
 					} 
 				}
 		} 
 	return 0; 
 }  
-int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
-{
+int Operations (char operation,int par1, int par2,int setPar, int setMulLvl){
 	int tempInsert = valueIdxInsert;
 	if ((operation == '+' || operation == '-') && mulDivLvl > 0)
 		valueIdxInsert = valueIdxInsert - 1 - mulDivLvl;
@@ -710,8 +702,7 @@ int Operations (char operation,int par1, int par2,int setPar, int setMulLvl)
 	valueIdxInsert = tempInsert;
 	return checkType(par1,par2,1); 
 }
-void addToOperation (char operation, char* par1, char* par2)
-{
+void addToOperation (char operation, char* par1, char* par2){
         int parameter2;
         if (par == 1 )
         {
@@ -771,13 +762,61 @@ void addToOperation (char operation, char* par1, char* par2)
 			valueIdx += 2;
         }
 }
+char * readFile(char* fileName){
+	char * code = 0;
+	long stringLength;
+	char fileNameWithTXT [100];
+	int i = 0;
+	while (fileName[i] != '\0')
+	{
+		fileNameWithTXT[i] = fileName[i];
+		i++;
+	}
+	fileNameWithTXT[i] = '.';
+	fileNameWithTXT[i + 1] = 't';
+	fileNameWithTXT[i + 2] = 'x';
+	fileNameWithTXT[i + 3] = 't';
+	fileNameWithTXT[i + 4] = '\0';
+	
+	FILE *inFilePtr = fopen(fileNameWithTXT,"rb");
+	if (!inFilePtr)
+	{
+		printf("error in opening the input file\n");
+		return NULL;
+	}
+	if (inFilePtr)
+	{
+		fseek (inFilePtr, 0, SEEK_END);
+		stringLength = ftell (inFilePtr);
+		fseek (inFilePtr, 0, SEEK_SET);
+		code = malloc (stringLength + 1);
+		if (code)
+			fread (code, 1, stringLength, inFilePtr);
+		code[stringLength] = '\0';
+		fclose (inFilePtr);
+	}
+	return code;
+}
 //------------------------------------------------
-int main(void) {
-    yyparse();
-	if(ext == 1)
+int main(int argc, char **argv) {
+	char *code = readFile(argv[1]);
+	outFilePtr = fopen(strcat(argv[1],"Output.txt"),"w");
+	if(!code)
+	{
+		fclose (outFilePtr);
 		return 0;
-	printf("----------The file is compiled successfully-----\t\n");
-	printf("----------Start Quadruples----------------------\t\n");
+	}
+	YY_BUFFER_STATE buffer = yy_scan_string(code);
+    yyparse();
+    yy_delete_buffer(buffer);
+
+	if(ext == 1)
+	{
+		fclose (outFilePtr);
+		return 0;
+	}
+	fprintf( outFilePtr,"----------The file is compiled successfully-----\t\n");
+	fprintf( outFilePtr,"----------Start Quadruples----------------------\t\n");
 	for (int i = 0 ; i < idx ; i ++){
 		if(symbol_table[i].kind == 4 && symbol_table[i].opr.oper == 'f'){
 			symbol_table[i].opr.oper = 'h';
@@ -800,10 +839,11 @@ int main(void) {
 			ex(&(symbol_table[i]));
 		}
 	}
-	printf("-----------END Quadruples-----\t\n");
-	printf("-----------Symbol Table-------\t\n");
+	fprintf( outFilePtr,"-----------END Quadruples-----\t\n");
+	fprintf( outFilePtr,"-----------Symbol Table-------\t\n");
     for (int i=0;i<idx;i++)
 		if (symbol_table[i].kind!=4)
-			printf("variable name: %s  \t,scope: %d\t,is used: %d\n",symbol_table[i].name,symbol_table[i].scope,symbol_table[i].isUsed);
+			fprintf( outFilePtr,"variable name: %s  \t,scope: %d\t,is used: %d\n",symbol_table[i].name,symbol_table[i].scope,symbol_table[i].isUsed);
+	fclose(outFilePtr);
     return 0;
 }

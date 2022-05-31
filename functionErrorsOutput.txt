@@ -1,0 +1,6 @@
+----------The file has compilation errors-----	
+there is no function declared with this name
+identifier is not a funcion
+this function has been declared before
+return type must be the same as function type 
+function cannot be modified

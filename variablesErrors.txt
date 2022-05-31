@@ -1,9 +1,9 @@
-int x = 1 / 0;
-y = 1;
-int x = 2;
-const int w = 1;
-w = 2;
-int asd = 'a';
-const char yu = 1;
+int x = 1 / 0; // division by zero
+y = 1; // y is not declared
+int x = 2; // x is declared before
+const int w = 1; 
+w = 2; // trying to edit a const variable
+float asd = 'a'; // writing char into float
+const char yu = 1; // writing int into char
 while(true){bool er = true;}
-er = false;
+er = false; // er is not declared different scope than er inside while

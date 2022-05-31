@@ -1,0 +1,183 @@
+----------The file is compiled successfully-----	
+----------Start Quadruples----------------------	
+	push	3
+	pop	x
+	push	1
+	pop	new
+	push	3
+	pop	y
+	push	a
+	push	c
+	add	t1
+	push	t1
+	pop	qw
+	push	1.300000
+	push	10.300000
+	mul	t1
+	push	t1
+	pop	flt
+	push	y
+	push	2
+	mul	t1
+	push	t1
+	push	t0
+	add	t2
+	push	t2
+	pop	x
+	push	y
+	push	x
+	add	t1
+	push	t1
+	push	x
+	add	t1
+	push	45
+	push	90
+	mul	t2
+	push	t2
+	push	125
+	div	t2
+	push	t2
+	push	t1
+	sub	t3
+	push	t3
+	push	100
+	add	t3
+	push	123
+	push	2
+	div	t4
+	push	t4
+	push	t3
+	sub	t5
+	push	t5
+	pop	x
+L000:
+	push	x
+	push	5
+	compLT	t1
+	push	y
+	push	10
+	compGE	t2
+	push	t1
+	push	t2
+	and	t3
+	push	t3
+	jz	L001
+	push	2
+	push	1
+	add	t4
+	push	t4
+	pop	x
+	jmp	L000
+L001:
+	push	y
+	push	2
+	mul	t1
+	push	t1
+	push	x
+	add	t2
+	push	t2
+	pop	x
+	push	0
+	pop	i
+L002:
+	push	i
+	push	10
+	compLT	t1
+	push	t1
+	jz	L003
+	push	i
+	pop	x
+	push	i
+	push	1
+	add	t1
+	push	t1
+	pop	i
+	jmp	L002
+L003:
+	push	y
+	push	2
+	mul	t1
+	push	t1
+	push	x
+	add	t2
+	push	t2
+	pop	x
+	push	1
+	not	t1
+	push	t1
+	push	new
+	or	t2
+	push	0
+	push	0
+	and	t3
+	push	t2
+	push	t3
+	and	t4
+	push	t4
+	pop	w
+L004:
+	push	1
+	push	2
+	add	t1
+	push	t1
+	pop	g
+	push	w
+	not	t1
+	push	t1
+	jz	L005
+	jmp	L004
+L005:
+	push	1
+	pop	f
+	push	w
+	not	t1
+	push	t1
+	jz	L006
+	push	1
+	pop	f
+L006:
+	push	w
+	not	t1
+	push	t1
+	pop	r
+	push	r
+	push	1
+	compEQ	t2
+	push	t2
+	jz	L007
+	push	1
+	push	t2
+	pop	asf
+	jmp	S000
+L007:
+	push	w
+	not	t1
+	push	r
+	push	t1
+	compEQ	t2
+	push	t2
+	jz	L008
+	push	1
+	push	t2
+	pop	asf
+	jmp	S000
+L008:
+	push	1
+	pop	asf
+S000:
+-----------END Quadruples-----	
+-----------Symbol Table-------	
+variable name: x  	,scope: 0	,is used: 1
+variable name: new  	,scope: 0	,is used: 1
+variable name: y  	,scope: 0	,is used: 1
+variable name: qw  	,scope: 0	,is used: 0
+variable name: flt  	,scope: 0	,is used: 0
+variable name: i  	,scope: 2	,is used: 1
+variable name: x  	,scope: 2	,is used: 0
+variable name: w  	,scope: 0	,is used: 1
+variable name: g  	,scope: 3	,is used: 0
+variable name: f  	,scope: 0	,is used: 0
+variable name: f  	,scope: 4	,is used: 0
+variable name: asf  	,scope: 5	,is used: 0
+variable name: asf  	,scope: 6	,is used: 0
+variable name: asf  	,scope: 7	,is used: 0
