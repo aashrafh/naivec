@@ -57,8 +57,7 @@ L000:
 	push	y
 	push	10
 	compGE	t2
-	push	t1
-	push	t2
+	push	10
 	and	t3
 	push	t3
 	jz	L001
@@ -144,7 +143,7 @@ L006:
 	push	1
 	compEQ	t2
 	push	t2
-	jz	L007
+	jzL007
 	push	1
 	push	t2
 	pop	asf
@@ -167,17 +166,17 @@ L008:
 S000:
 -----------END Quadruples-----	
 -----------Symbol Table-------	
-variable name: x  	,scope: 0	,is used: 1
-variable name: new  	,scope: 0	,is used: 1
-variable name: y  	,scope: 0	,is used: 1
-variable name: qw  	,scope: 0	,is used: 0
-variable name: flt  	,scope: 0	,is used: 0
-variable name: i  	,scope: 2	,is used: 1
-variable name: x  	,scope: 2	,is used: 0
-variable name: w  	,scope: 0	,is used: 1
-variable name: g  	,scope: 3	,is used: 0
-variable name: f  	,scope: 0	,is used: 0
-variable name: f  	,scope: 4	,is used: 0
-variable name: asf  	,scope: 5	,is used: 0
-variable name: asf  	,scope: 6	,is used: 0
-variable name: asf  	,scope: 7	,is used: 0
+variable name: x	,scope: 0	,is used: 1
+variable name: new	,scope: 0	,is used: 1
+variable name: y	,scope: 0	,is used: 1
+variable name: qw	,scope: 0	,is used: 0
+variable name: flt	,scope: 0	,is used: 0
+variable name: i	,scope: 2	,is used: 1
+variable name: x	,scope: 2	,is used: 0
+variable name: w	,scope: 0	,is used: 1
+variable name: g	,scope: 3	,is used: 0
+variable name: f	,scope: 0	,is used: 0
+variable name: f	,scope: 4	,is used: 0
+variable name: asf	,scope: 5	,is used: 0
+variable name: asf	,scope: 6	,is used: 0
+variable name: asf	,scope: 7	,is used: 0

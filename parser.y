@@ -843,7 +843,7 @@ int main(int argc, char **argv) {
 	fprintf( outFilePtr,"-----------Symbol Table-------\t\n");
     for (int i=0;i<idx;i++)
 		if (symbol_table[i].kind!=4)
-			fprintf( outFilePtr,"variable name: %s  \t,scope: %d\t,is used: %d\n",symbol_table[i].name,symbol_table[i].scope,symbol_table[i].isUsed);
+			fprintf( outFilePtr,"variable name: %s\t,scope: %d\t,is used: %d\n",symbol_table[i].name,symbol_table[i].scope,symbol_table[i].isUsed);
 	fclose(outFilePtr);
     return 0;
 }
