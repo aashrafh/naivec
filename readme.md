@@ -9,7 +9,7 @@ Abdelrahman Ahmed Fadl | 1 | 32
 ---
 # Running Notes
 - to compile the lexer and parser run the script run.sh it will generate the .c and compiler.exe files
-- to pass the text file to the .exe file run **_compiler.exe < input.txt_**
+- to pass the text file `input.txt` to the .exe file run `compiler.exe  input`
 - print statements is outputed in the console after running the .exe file for debugging
 - if an error occurred it will print syntax error and exit the file
 
@@ -25,10 +25,10 @@ Abdelrahman Ahmed Fadl | 1 | 32
 ---
 # Phase 2
 - We have written 4 input files 
-- 1 for all the cases that pass with no errors run **_compiler.exe  noErrors_** 
+- 1 for all the cases that pass with no errors run `compiler.exe  noErrors`
 - the other 3 files contain 3 types of errors one for variables one for functions and one for the loops and conditions
-- to run each use **_compiler.exe  conditionError_** and **_compiler.exe  functionErrors_** and  **_compiler.exe variablesErrors_**
-- each input file will generate an output file containing whether the compilation errors or the quadruples and the symbol table of the code if it is compiled successfully the file will be called  :fileName:Output.txt
+- to run each use `compiler.exe  conditionError` and `compiler.exe  functionErrors` and  `compiler.exe variablesErrors`
+- each input file will generate an output file containing whether the compilation errors or the quadruples and the symbol table of the code if it is compiled successfully the file will be called  **_`:fileName:Output.txt`_**
 
 
 ## quadruples definitions
